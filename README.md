@@ -126,43 +126,6 @@ Open **Settings → Community plugins → Media Gallery** (Settings | README tab
 
 - **Insert media gallery** — opens the builder modal in the active note
 
-## Migration from Gallery View (`obs-gallery`)
-
-Gallery View used YAML inside an `obs-gallery` block. Media Gallery uses the OPTIONS/MEDIA format above. There is no automatic converter in v1.
-
-| Gallery View (YAML) | Media Gallery |
-|----------------------|---------------|
-| `view: grid` | `VIEW: grid` |
-| Local path in YAML sources | `LOCAL: path/to/folder recursive` |
-| External URL list | `URL: https://...` |
-| Immich / Nextcloud | Not supported — use local paths or direct image URLs |
-
-Example manual conversion:
-
-**Before (`obs-gallery`):**
-
-```yaml
-view: grid
-sources:
-  - type: local
-    path: Characters/Art
-    recursive: true
-  - type: external
-    urls:
-      - https://example.com/photo.jpg
-```
-
-**After (`media-gallery`):**
-
-```media-gallery
-OPTIONS:
-VIEW: grid
-FILTER: images
-MEDIA:
-LOCAL: Characters/Art recursive
-URL: https://example.com/photo.jpg
-```
-
 ## Install from GitHub
 
 ```bash
@@ -189,6 +152,12 @@ Remote vault (recommended):
 ```bash
 ./build.sh
 ```
+
+## Credits
+
+Media Gallery is an independent FootPrintStudio plugin with its own `media-gallery` block syntax and settings. It was inspired in part by [Gallery View](https://github.com/mkshp-dev/obsidian-gallery-plugin) — particularly the idea of embedding configurable media galleries directly in notes.
+
+Masonry layouts (`masonry-h`, `masonry-v`) adapt algorithms from [Allusion](https://github.com/allusion-app/Allusion).
 
 ## License
 
