@@ -51,13 +51,16 @@ export default class MediaGalleryPlugin extends Plugin {
 		this.addCommand({
 			id: "insert-media-gallery",
 			name: "Insert media gallery",
-			callback: () => {
+			icon: "images",
+			editorCheckCallback: (checking) => {
 				const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+				if (checking) return Boolean(view?.editor);
 				if (!view?.editor) {
 					new Notice("Open a note to insert a media gallery block.");
-					return;
+					return false;
 				}
 				new GalleryBuilderModal(this.app, this, view.editor).open();
+				return true;
 			},
 		});
 	}

@@ -1,7 +1,7 @@
 import type { Component } from "obsidian";
 import { resolveCarouselHeightPx } from "../parseBlock";
 import type { GalleryItem, MediaGallerySettings } from "../types";
-import { createMediaTile } from "./renderGallery";
+import { createMediaTile, appendGalleryTileMedia } from "./renderGallery";
 
 export function renderCarousel(
 	container: HTMLElement,
@@ -31,18 +31,11 @@ export function renderCarousel(
 		thumbStrip.empty();
 		items.forEach((item, index) => {
 			const thumb = thumbStrip.createDiv({
-				cls: `mg-carousel-thumb${index === activeIndex ? " is-active" : ""}`,
+				cls: `mg-carousel-thumb${index === activeIndex ? " is-active" : ""}${item.urlVariant === "hosted" ? " mg-carousel-thumb-hosted" : ""}`,
 				attr: { role: "button", tabindex: "0", "aria-label": item.name },
 			});
-			if (item.mediaKind === "video") {
-				thumb.createEl("video", {
-					attr: { src: item.src, preload: "metadata", muted: "", playsinline: "" },
-				});
-			} else {
-				thumb.createEl("img", {
-					attr: { src: item.src, alt: item.name, loading: "lazy", draggable: "false" },
-				});
-			}
+			const thumbMedia = thumb.createDiv({ cls: "mg-carousel-thumb-media" });
+			appendGalleryTileMedia(thumbMedia, item);
 			const select = (): void => {
 				activeIndex = index;
 				renderSlide();

@@ -1,14 +1,15 @@
 # Media Gallery
 
-FootPrintStudio plugin for Obsidian: render local vault media and remote images in grid, thumbnail, carousel, and masonry layouts inside notes.
+FootPrintStudio plugin for Obsidian: render local vault media and remote images/videos in grid, thumbnail, carousel, and masonry layouts inside notes.
 
 ## Features
 
 - **Local media** — single files, folders, or recursive folder scans
-- **Remote images** — `URL:` lines (optional; toggle in settings)
+- **Remote media** — `URL:` lines for images, direct video links, and hosted platforms (YouTube, Vimeo, etc.)
 - **Views** — `grid`, `thumbnails`, `carousel`, `masonry-h`, `masonry-v`
-- **Filter** — `images`, `video`, or `all` (applies to LOCAL folder scans)
+- **Filter** — `images`, `video`, or `all` (applies to LOCAL folder scans and URL entries)
 - **Lightbox** — prev/next, Escape, arrow keys, basic zoom on images, native video controls
+- **Media Extended** — video playback via [Media Extended](https://github.com/aidenlx/media-extended) when installed (desktop); required for hosted platform URLs
 - **Builder** — command palette **Insert media gallery** with live preview
 - **Auto-refresh** — open galleries re-render when vault media files change
 
@@ -99,7 +100,7 @@ Append options after `|` on the VIEW line (comma-separated):
 | Comments | Lines starting with `#` are ignored |
 | List prefix | Optional leading `- ` on any line |
 | Recursive | Append `recursive` after a folder path, or end path with `/` |
-| URL video | Not supported in v1 (images only) |
+| URL entries | Direct image/video URLs (`.jpg`, `.mp4`, etc.) or hosted platforms (YouTube, Vimeo, Bilibili, Coursera) |
 
 ### VIEW values
 
@@ -116,10 +117,10 @@ Append options after `|` on the VIEW line (comma-separated):
 | Value | Applies to |
 |-------|------------|
 | `images` | `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp` |
-| `video` | `.mp4`, `.webm`, `.mov` |
+| `video` | `.mp4`, `.webm`, `.mov`, and hosted platform URLs |
 | `all` | Both image and video extensions |
 
-FILTER affects **LOCAL folder scans** only. Single LOCAL files and URL entries are included if their type is supported.
+FILTER affects **LOCAL folder scans** and **URL entries** (by detected media kind). Single LOCAL files are included if their type is supported regardless of FILTER.
 
 ## Settings
 
@@ -127,14 +128,55 @@ Open **Settings → Community plugins → Media Gallery** (Settings | README tab
 
 | Setting | Description |
 |---------|-------------|
-| Allow remote images | Enable or block `URL:` entries |
+| Allow remote media | Enable or block `URL:` entries (images, direct video links, hosted platforms) |
+| Validate remote Content-Type | Probe URL headers when extension is missing or validation is enabled |
+| Remote request timeout | Milliseconds to wait for Content-Type probes |
+| Use Media Extended for videos | Open local and direct URL videos in Media Extended when installed (desktop); hosted platform URLs always open in Media Extended |
 | Show captions | Toggle caption display on tiles and lightbox |
 | Caption max lines | Line clamp for tile captions (1–5) |
 | Default view | Used when VIEW is omitted |
 
+### URL media notes
+
+**Direct links** (`.mp4`, `.webm`, `.mov`, image extensions):
+
+- Need a recognizable extension or **Validate remote Content-Type** enabled.
+- **CORS:** some hosts block in-browser preview in gallery tiles; playback may still work via Media Extended. Failed tiles show a warning above the gallery.
+- With **Use Media Extended for videos** off, direct URL videos fall back to the native lightbox.
+
+**Hosted platforms** (YouTube, Vimeo, Bilibili, Coursera):
+
+- Require **Media Extended** on desktop; without it, entries show a resolve warning and are skipped.
+- Tiles use platform thumbnails where available (YouTube, Vimeo) or a generic video poster.
+- Click always opens Media Extended (no lightbox fallback).
+
 ## Commands
 
-- **Insert media gallery** — opens the builder modal in the active note
+- **Insert media gallery** — opens the builder modal in the active markdown note (command palette or hotkey)
+
+### Builder
+
+The builder (**Insert media gallery**) helps compose a `media-gallery` block without memorizing syntax:
+
+- Pick **view** and per-view layout options (columns, carousel height, masonry sizing)
+- Set **filter** (`images` / `video` / `all`) — applies to folder scans and URL entries
+- Add **local** vault paths or **remote URLs** (images, direct `.mp4` links, YouTube/Vimeo/Bilibili/Coursera)
+- Live **block preview** with copy-to-clipboard
+- Drag source cards to reorder, or use move-up/down controls
+- Quick-add shortcuts: **+ Local**, **+ URL**, **+ YouTube**
+
+Hosted platform URLs require Media Extended on desktop; the builder shows a note when that plugin is not installed.
+
+Example hosted URL block:
+
+```media-gallery
+OPTIONS:
+VIEW: grid
+FILTER: video
+MEDIA:
+URL: https://www.youtube.com/watch?v=jNQXAC9IVRw | Sample video
+URL: https://www.w3schools.com/html/mov_bbb.mp4 | Direct MP4
+```
 
 ## Install from GitHub
 

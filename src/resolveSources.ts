@@ -1,4 +1,5 @@
-import { App, TFile, TFolder } from "obsidian";
+import { App, Platform, TFile, TFolder } from "obsidian";
+import { isMediaExtendedAvailable } from "./mediaExtended";
 import type {
 	GalleryItem,
 	MediaFilter,
@@ -6,8 +7,19 @@ import type {
 	MediaKind,
 	ParsedGalleryBlock,
 	ResolveWarning,
+	UrlMediaEntry,
 } from "./types";
 import { IMAGE_EXTENSIONS, VIDEO_EXTENSIONS } from "./types";
+import {
+	contentTypeToMediaKind,
+	genericHostedPosterUrl,
+	hostedPlatformDisplayName,
+	hostedPlatformPosterUrl,
+	inferUrlMediaKind,
+	isHostedMediaUrl,
+	probeUrlContentType,
+	urlDisplayName,
+} from "./urlMedia";
 
 function extensionKind(ext: string): MediaKind | null {
 	const lower = ext.toLowerCase();
@@ -60,6 +72,103 @@ function scanFolder(
 	return results.sort((a, b) => a.path.localeCompare(b.path));
 }
 
+async function resolveUrlEntry(
+	app: App,
+	entry: UrlMediaEntry,
+	settings: MediaGallerySettings,
+	filter: MediaFilter,
+): Promise<{ item?: GalleryItem; warning?: ResolveWarning }> {
+	if (!settings.allowRemoteImages) {
+		return {
+			warning: {
+				line: entry.line,
+				message: "Remote media disabled in plugin settings.",
+			},
+		};
+	}
+
+	if (isHostedMediaUrl(entry.url)) {
+		if (!Platform.isDesktopApp || !isMediaExtendedAvailable(app)) {
+			return {
+				warning: {
+					line: entry.line,
+					message:
+						"Hosted platform URLs (YouTube, Vimeo, Bilibili, Coursera, etc.) require Media Extended on desktop.",
+				},
+			};
+		}
+
+		if (!filterAllows("video", filter)) {
+			return {};
+		}
+
+		return {
+			item: {
+				id: entry.url,
+				mediaKind: "video",
+				source: "url",
+				url: entry.url,
+				urlVariant: "hosted",
+				caption: entry.caption,
+				src: hostedPlatformPosterUrl(entry.url) ?? genericHostedPosterUrl(),
+				name: hostedPlatformDisplayName(entry.url),
+			},
+		};
+	}
+
+	let kind = inferUrlMediaKind(entry.url);
+
+	if (settings.validateRemoteContentType) {
+		const contentType = await probeUrlContentType(entry.url, settings.remoteLoadTimeoutMs);
+		if (!contentType) {
+			return {
+				warning: {
+					line: entry.line,
+					message: `Could not determine Content-Type for URL (timeout or blocked): ${entry.url}`,
+				},
+			};
+		}
+
+		const probedKind = contentTypeToMediaKind(contentType);
+		if (!probedKind) {
+			return {
+				warning: {
+					line: entry.line,
+					message: `URL is not an image or video (Content-Type: ${contentType}).`,
+				},
+			};
+		}
+
+		kind = probedKind;
+	}
+
+	if (!kind) {
+		return {
+			warning: {
+				line: entry.line,
+				message: `Unsupported URL type (no recognized image/video extension): ${entry.url}`,
+			},
+		};
+	}
+
+	if (!filterAllows(kind, filter)) {
+		return {};
+	}
+
+	return {
+		item: {
+			id: entry.url,
+			mediaKind: kind,
+			source: "url",
+			url: entry.url,
+			urlVariant: "direct",
+			caption: entry.caption,
+			src: entry.url,
+			name: urlDisplayName(entry.url),
+		},
+	};
+}
+
 export async function resolveGalleryItems(
 	app: App,
 	block: ParsedGalleryBlock,
@@ -77,22 +186,9 @@ export async function resolveGalleryItems(
 
 	for (const entry of block.entries) {
 		if (entry.kind === "url") {
-			if (!settings.allowRemoteImages) {
-				warnings.push({
-					line: entry.line,
-					message: "Remote images disabled in plugin settings.",
-				});
-				continue;
-			}
-			addItem({
-				id: entry.url,
-				mediaKind: "image",
-				source: "url",
-				url: entry.url,
-				caption: entry.caption,
-				src: entry.url,
-				name: entry.url.split("/").pop() ?? entry.url,
-			});
+			const resolved = await resolveUrlEntry(app, entry, settings, block.filter);
+			if (resolved.warning) warnings.push(resolved.warning);
+			if (resolved.item) addItem(resolved.item);
 			continue;
 		}
 

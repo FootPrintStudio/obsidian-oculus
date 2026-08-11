@@ -19,6 +19,8 @@ Use fixtures in `Media Gallery Test/` inside the Command Centre vault. Reload Ob
 | `Media Gallery Test/04 Video Filter.md` | FILTER: video / all with local video |
 | `Media Gallery Test/05 Error Cases.md` | Parse errors and warnings display |
 | `Media Gallery Test/06 Refresh Test.md` | Add/remove file in watched folder; gallery updates |
+| `Media Gallery Test/08 URL Video.md` | Direct URL video + FILTER |
+| `Media Gallery Test/09 Hosted Video.md` | Hosted platform URLs + ME |
 
 ## Checklist
 
@@ -27,8 +29,15 @@ Use fixtures in `Media Gallery Test/` inside the Command Centre vault. Reload Ob
 - [ ] Click tile opens lightbox; Prev/Next and arrow keys work; Escape closes
 - [ ] Image zoom +/- works in lightbox
 - [ ] Local video shows native controls in lightbox
+- [ ] With Media Extended enabled: video tile opens in Media Extended player (desktop; local and direct URL)
+- [ ] Direct `URL:` video (`.mp4`) renders when **Allow remote media** is on
+- [ ] `URL:` video excluded when `FILTER: images`
+- [ ] YouTube/Vimeo `URL:` renders poster tile when Media Extended is installed (desktop)
+- [ ] Hosted platform tile click opens Media Extended (not lightbox)
+- [ ] YouTube/Vimeo `URL:` shows resolve warning when Media Extended is missing
+- [ ] CORS-blocked remote tile shows runtime warning above gallery
 - [ ] Captions appear when enabled; hidden when disabled in settings
-- [ ] `URL:` blocked when **Allow remote images** is off (warning shown)
+- [ ] `URL:` blocked when **Allow remote media** is off (warning shown)
 - [ ] Duplicate VIEW or FILTER shows parse error panel
 - [ ] Empty MEDIA section shows error
 - [ ] **Insert media gallery** command opens builder and inserts block at cursor
@@ -51,4 +60,4 @@ cd .obsidian/plugins/media-gallery
 ./build.sh
 ```
 
-Confirm `main.js` timestamp updates and Obsidian loads v1.0.0 from plugin settings.
+Confirm `main.js` timestamp updates and Obsidian loads v1.2.0 from plugin settings.

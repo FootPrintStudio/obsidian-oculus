@@ -1,4 +1,5 @@
 import { App, Modal } from "obsidian";
+import { tryOpenVideoInMediaExtended } from "../mediaExtended";
 import type { GalleryItem, MediaGallerySettings } from "../types";
 
 const MIN_ZOOM = 0.5;
@@ -142,7 +143,12 @@ export class LightboxModal extends Modal {
 		const item = this.items[this.index];
 		if (!item) return;
 
-		if (item.mediaKind === "video") {
+		if (item.urlVariant === "hosted") {
+			this.panZoomEnabled = false;
+			this.mediaEl = transform.createEl("img", {
+				attr: { src: item.src, alt: item.name, draggable: "false" },
+			});
+		} else if (item.mediaKind === "video") {
 			this.panZoomEnabled = false;
 			this.mediaEl = transform.createEl("video", {
 				attr: { src: item.src, controls: "", autoplay: "", playsinline: "" },
@@ -163,6 +169,16 @@ export class LightboxModal extends Modal {
 
 		if (this.settings.showCaptions && item.caption) {
 			info.createDiv({ cls: "mg-lightbox-caption", text: item.caption });
+		}
+		if (item.urlVariant === "hosted") {
+			info
+				.createEl("button", {
+					text: "Open in Media Extended",
+					cls: "mg-lightbox-nav-btn",
+				})
+				.addEventListener("click", () => {
+					void tryOpenVideoInMediaExtended(this.app, item);
+				});
 		}
 		info.createDiv({
 			cls: "mg-lightbox-meta",

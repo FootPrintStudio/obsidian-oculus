@@ -1,7 +1,9 @@
-import { App, Modal, Notice, Setting } from "obsidian";
+import { App, Modal, Notice, Platform, Setting } from "obsidian";
 import type { Editor } from "obsidian";
 import { formatMediaGalleryBlock } from "./parseBlock";
 import type MediaGalleryPlugin from "./main";
+import { isMediaExtendedAvailable } from "./mediaExtended";
+import { describeUrlMediaEntry } from "./urlMedia";
 import { MEDIA_FILTERS, VIEW_TYPES, type GalleryViewType, type MediaFilter } from "./types";
 
 interface LocalSource {
@@ -27,6 +29,12 @@ const VIEW_LABELS: Record<GalleryViewType, string> = {
 	"masonry-v": "Masonry (vertical)",
 };
 
+const FILTER_LABELS: Record<MediaFilter, string> = {
+	images: "Images only",
+	video: "Video only",
+	all: "All media",
+};
+
 export class GalleryBuilderModal extends Modal {
 	private plugin: MediaGalleryPlugin;
 	private editor: Editor;
@@ -49,7 +57,7 @@ export class GalleryBuilderModal extends Modal {
 		this.plugin = plugin;
 		this.editor = editor;
 		this.view = plugin.settings.defaultView;
-		this.filter = "images";
+		this.filter = "all";
 	}
 
 	onOpen(): void {
@@ -59,18 +67,25 @@ export class GalleryBuilderModal extends Modal {
 		contentEl.addClass("mg-builder-modal");
 
 		const header = contentEl.createDiv({ cls: "mg-builder-header" });
-		header.createEl("h2", { text: "Media Gallery builder" });
+		header.createEl("h2", { text: "Insert media gallery" });
 		header.createEl("p", {
 			cls: "mg-builder-header-desc",
-			text: "Configure view, filter, and media sources. Drag cards to reorder (or use arrows).",
+			text: "Configure layout, filter, and sources. Drag source cards to reorder, or use the arrow buttons.",
 		});
+
+		if (Platform.isDesktopApp && !isMediaExtendedAvailable(this.app)) {
+			header.createEl("p", {
+				cls: "mg-builder-header-note",
+				text: "Install Media Extended to include YouTube, Vimeo, and other hosted platform URLs.",
+			});
+		}
 
 		const layoutSection = contentEl.createDiv({ cls: "mg-builder-section" });
 		layoutSection.createDiv({ cls: "mg-builder-section-title", text: "1 — Layout" });
 
 		new Setting(layoutSection)
 			.setName("View")
-			.setDesc("How the gallery is displayed in the note.")
+			.setDesc("Gallery layout in the note.")
 			.addDropdown((dropdown) => {
 				for (const view of VIEW_TYPES) dropdown.addOption(view, VIEW_LABELS[view]);
 				dropdown.setValue(this.view).onChange((value) => {
@@ -85,9 +100,9 @@ export class GalleryBuilderModal extends Modal {
 
 		new Setting(layoutSection)
 			.setName("Filter")
-			.setDesc("Applies to LOCAL folder scans only.")
+			.setDesc(this.filterDescription())
 			.addDropdown((dropdown) => {
-				for (const filter of MEDIA_FILTERS) dropdown.addOption(filter, filter);
+				for (const filter of MEDIA_FILTERS) dropdown.addOption(filter, FILTER_LABELS[filter]);
 				dropdown.setValue(this.filter).onChange((value) => {
 					this.filter = value as MediaFilter;
 					this.refreshPreview();
@@ -100,22 +115,25 @@ export class GalleryBuilderModal extends Modal {
 
 		const quickAdd = sourcesHeader.createDiv({ cls: "mg-builder-quick-add" });
 		quickAdd
-			.createEl("button", { cls: "mg-builder-pill", text: "+ Local path" })
+			.createEl("button", { cls: "mg-builder-pill", text: "+ Local" })
 			.addEventListener("click", () => this.addLocalSource());
 		quickAdd
 			.createEl("button", { cls: "mg-builder-pill", text: "+ URL" })
 			.addEventListener("click", () => this.addUrlSource());
+		quickAdd
+			.createEl("button", { cls: "mg-builder-pill", text: "+ YouTube" })
+			.addEventListener("click", () => this.addUrlSource("https://www.youtube.com/watch?v="));
 
 		this.sourcesContainer = sourcesSection.createDiv({ cls: "mg-builder-sources-list" });
 		this.renderSources();
 
 		const previewSection = contentEl.createDiv({ cls: "mg-builder-section" });
 		const previewHeader = previewSection.createDiv({ cls: "mg-builder-section-header" });
-		previewHeader.createDiv({ cls: "mg-builder-section-title", text: "3 — Preview" });
+		previewHeader.createDiv({ cls: "mg-builder-section-title", text: "3 — Block preview" });
 
 		const copyBtn = previewHeader.createEl("button", {
 			cls: "mg-builder-copy-btn",
-			text: "Copy block",
+			text: "Copy",
 		});
 		copyBtn.addEventListener("click", () => {
 			const text = this.buildBlockText();
@@ -132,10 +150,14 @@ export class GalleryBuilderModal extends Modal {
 			.createEl("button", { cls: "mg-builder-cancel-btn", text: "Cancel" })
 			.addEventListener("click", () => this.close());
 		footer
-			.createEl("button", { cls: "mg-builder-insert-btn mod-cta", text: "Insert gallery block" })
+			.createEl("button", { cls: "mg-builder-insert-btn mod-cta", text: "Insert at cursor" })
 			.addEventListener("click", () => this.insertBlock());
 
 		this.refreshPreview();
+	}
+
+	private filterDescription(): string {
+		return "Applies to LOCAL folder scans and URL entries by detected media type.";
 	}
 
 	private refreshLayoutSettings(): void {
@@ -148,7 +170,7 @@ export class GalleryBuilderModal extends Modal {
 			this.layoutSettings.push(
 				new Setting(this.layoutSection)
 					.setName("Grid columns")
-					.setDesc('Per-block column layout: "auto", a number like "3", or a CSS value.')
+					.setDesc('Column layout: auto, a number (3), px width (200px), or CSS minmax.')
 					.addText((text) =>
 						text
 							.setPlaceholder("auto")
@@ -165,7 +187,7 @@ export class GalleryBuilderModal extends Modal {
 			this.layoutSettings.push(
 				new Setting(this.layoutSection)
 					.setName("Thumbnail columns")
-					.setDesc('Per-block column layout: "auto", a number like "3", or a CSS value.')
+					.setDesc('Column layout: auto, a number (3), px width (120px), or CSS minmax.')
 					.addText((text) =>
 						text
 							.setPlaceholder("auto")
@@ -182,7 +204,7 @@ export class GalleryBuilderModal extends Modal {
 			this.layoutSettings.push(
 				new Setting(this.layoutSection)
 					.setName("Carousel height")
-					.setDesc("Main slide height in pixels, e.g. 500 or 500px. Leave empty for default (420px).")
+					.setDesc("Main slide height in px (default 420). Leave empty for default.")
 					.addText((text) =>
 						text
 							.setPlaceholder("420")
@@ -196,7 +218,7 @@ export class GalleryBuilderModal extends Modal {
 			this.layoutSettings.push(
 				new Setting(this.layoutSection)
 					.setName("Show thumbnails")
-					.setDesc('Adds "show" to the VIEW line — thumbnail strip under the main slide.')
+					.setDesc("Thumbnail strip under the main slide.")
 					.addToggle((toggle) =>
 						toggle.setValue(this.carouselShowThumbnails).onChange((value) => {
 							this.carouselShowThumbnails = value;
@@ -210,7 +232,7 @@ export class GalleryBuilderModal extends Modal {
 			this.layoutSettings.push(
 				new Setting(this.layoutSection)
 					.setName("Row height")
-					.setDesc("Target row height for justified horizontal masonry, e.g. 300 or 300px.")
+					.setDesc("Target row height for horizontal masonry (default 200px).")
 					.addText((text) =>
 						text
 							.setPlaceholder("200")
@@ -227,7 +249,7 @@ export class GalleryBuilderModal extends Modal {
 			this.layoutSettings.push(
 				new Setting(this.layoutSection)
 					.setName("Column width")
-					.setDesc('Per-block column layout: "auto", a number like "3", "200px", or minmax CSS.')
+					.setDesc('Column layout: auto, a number (3), px width (200px), or minmax CSS.')
 					.addText((text) =>
 						text
 							.setPlaceholder("auto")
@@ -247,8 +269,8 @@ export class GalleryBuilderModal extends Modal {
 		this.refreshPreview();
 	}
 
-	private addUrlSource(): void {
-		this.sources.push({ kind: "url", url: "", caption: "" });
+	private addUrlSource(initialUrl = ""): void {
+		this.sources.push({ kind: "url", url: initialUrl, caption: "" });
 		this.renderSources();
 		this.refreshPreview();
 	}
@@ -279,7 +301,7 @@ export class GalleryBuilderModal extends Modal {
 			const empty = container.createDiv({ cls: "mg-builder-empty-state" });
 			empty.createEl("h4", { text: "No sources yet" });
 			empty.createEl("p", {
-				text: "Add a local vault path (file or folder) or an external image URL.",
+				text: "Add a vault path, remote image, direct video URL, or hosted platform link (YouTube, Vimeo, etc.).",
 			});
 			return;
 		}
@@ -337,7 +359,7 @@ export class GalleryBuilderModal extends Modal {
 			if (source.kind === "local") {
 				new Setting(body)
 					.setName("Vault path")
-					.setDesc("File or folder path from vault root, e.g. Images/hero.png or Characters/Art/")
+					.setDesc("File or folder from vault root, e.g. Assets/photo.png or Photos/")
 					.addText((text) =>
 						text.setValue(source.path).onChange((value) => {
 							source.path = value.trim();
@@ -355,20 +377,24 @@ export class GalleryBuilderModal extends Modal {
 				new Setting(body)
 					.setName("Caption")
 					.addText((text) =>
-						text.setPlaceholder("Optional caption for all items from this source").onChange((value) => {
+						text.setPlaceholder("Optional — applies to items from this source").onChange((value) => {
 							source.caption = value;
 							this.refreshPreview();
 						}),
 					);
 			} else {
-				new Setting(body)
-					.setName("Image URL")
-					.setDesc("Must start with http:// or https://")
+				const urlSetting = new Setting(body)
+					.setName("Media URL")
+					.setDesc(describeUrlMediaEntry(source.url))
 					.addText((text) =>
-						text.setValue(source.url).onChange((value) => {
-							source.url = value.trim();
-							this.refreshPreview();
-						}),
+						text
+							.setPlaceholder("https://")
+							.setValue(source.url)
+							.onChange((value) => {
+								source.url = value.trim();
+								urlSetting.setDesc(describeUrlMediaEntry(source.url));
+								this.refreshPreview();
+							}),
 					);
 				new Setting(body)
 					.setName("Caption")
@@ -448,5 +474,6 @@ export class GalleryBuilderModal extends Modal {
 
 	onClose(): void {
 		this.contentEl.empty();
+		this.modalEl.removeClass("mg-builder-modal-container");
 	}
 }

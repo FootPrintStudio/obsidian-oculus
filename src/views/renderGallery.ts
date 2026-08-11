@@ -1,4 +1,5 @@
-import { App, Component } from "obsidian";
+import { App, Component, Notice } from "obsidian";
+import { isMediaExtendedAvailable, tryOpenVideoInMediaExtended } from "../mediaExtended";
 import type { GalleryItem, MediaGallerySettings, ParsedGalleryBlock } from "../types";
 import { openLightbox } from "./lightbox";
 import { renderCarousel } from "./carouselView";
@@ -6,6 +7,31 @@ import { renderGrid } from "./gridView";
 import { renderMasonryH } from "./masonryHView";
 import { renderMasonryV } from "./masonryVView";
 import { renderThumbnails } from "./thumbnailView";
+
+export async function openGalleryItem(
+	app: App,
+	items: GalleryItem[],
+	index: number,
+	settings: MediaGallerySettings,
+): Promise<void> {
+	const item = items[index];
+	if (!item) return;
+
+	if (item.urlVariant === "hosted") {
+		if (await tryOpenVideoInMediaExtended(app, item)) return;
+		new Notice("Hosted videos require Media Extended on desktop.");
+		return;
+	}
+
+	if (
+		item.mediaKind === "video" &&
+		settings.useMediaExtendedPlayback &&
+		(await tryOpenVideoInMediaExtended(app, item))
+	) {
+		return;
+	}
+	openLightbox(app, items, index, settings);
+}
 
 export function renderGalleryView(
 	app: App,
@@ -20,7 +46,7 @@ export function renderGalleryView(
 	container.addClass("mg-gallery-root");
 
 	const onOpen = (index: number): void => {
-		openLightbox(app, items, index, settings);
+		void openGalleryItem(app, items, index, settings);
 	};
 
 	switch (viewType) {
@@ -130,17 +156,51 @@ function attachLazyLoad(el: HTMLElement): void {
 	el.addEventListener("remove", () => observer.disconnect(), { once: true });
 }
 
-export function createMediaTile(
-	parent: HTMLElement,
-	item: GalleryItem,
-	settings: MediaGallerySettings,
-	onOpen: (index: number) => void,
-	index: number,
-): HTMLElement {
-	const tile = parent.createDiv({ cls: "mg-tile" });
-	tile.dataset.mediaKind = item.mediaKind;
+function attachRemoteLoadErrorHandler(tile: HTMLElement, item: GalleryItem): void {
+	if (item.source !== "url" || item.urlVariant === "hosted") return;
 
-	const mediaWrap = tile.createDiv({ cls: "mg-tile-media" });
+	const media = tile.querySelector("img, video");
+	if (!media) return;
+
+	media.addEventListener(
+		"error",
+		() => {
+			const block = tile.closest(".mg-block");
+			if (!block) return;
+
+			let panel = block.querySelector(".mg-gallery-warnings");
+			if (!panel) {
+				panel = block.createDiv({ cls: "mg-gallery-warnings" });
+				const host = block.querySelector(".mg-gallery-host");
+				if (host) block.insertBefore(panel, host);
+			}
+
+			const message = `Remote media failed to load (CORS or blocked URL): ${item.url ?? item.name}`;
+			const existing = Array.from(panel.querySelectorAll(".mg-gallery-warning-line")).some(
+				(el) => el.textContent === message,
+			);
+			if (existing) return;
+
+			panel.createDiv({ cls: "mg-gallery-warning-line", text: message });
+		},
+		{ once: true },
+	);
+}
+
+export function appendGalleryTileMedia(mediaWrap: HTMLElement, item: GalleryItem): void {
+	if (item.urlVariant === "hosted") {
+		mediaWrap.createEl("img", {
+			attr: {
+				src: item.src,
+				alt: item.name,
+				loading: "lazy",
+				draggable: "false",
+			},
+		});
+		mediaWrap.createDiv({ cls: "mg-tile-play-badge", attr: { "aria-hidden": "true" } });
+		return;
+	}
+
 	if (item.mediaKind === "video") {
 		mediaWrap.createEl("video", {
 			attr: {
@@ -150,19 +210,36 @@ export function createMediaTile(
 				playsinline: "",
 			},
 		});
-	} else {
-		mediaWrap.createEl("img", {
-			attr: {
-				src: item.src,
-				alt: item.name,
-				loading: "lazy",
-				draggable: "false",
-			},
-		});
+		return;
 	}
+
+	mediaWrap.createEl("img", {
+		attr: {
+			src: item.src,
+			alt: item.name,
+			loading: "lazy",
+			draggable: "false",
+		},
+	});
+}
+
+export function createMediaTile(
+	parent: HTMLElement,
+	item: GalleryItem,
+	settings: MediaGallerySettings,
+	onOpen: (index: number) => void,
+	index: number,
+): HTMLElement {
+	const tile = parent.createDiv({ cls: "mg-tile" });
+	tile.dataset.mediaKind = item.mediaKind;
+	if (item.urlVariant === "hosted") tile.addClass("mg-tile-hosted");
+
+	const mediaWrap = tile.createDiv({ cls: "mg-tile-media" });
+	appendGalleryTileMedia(mediaWrap, item);
 
 	suppressNativeImageViewer(tile, () => onOpen(index));
 	attachLazyLoad(tile);
+	attachRemoteLoadErrorHandler(tile, item);
 
 	if (settings.showCaptions && item.caption) {
 		const caption = tile.createDiv({ cls: "mg-tile-caption", text: item.caption });

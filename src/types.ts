@@ -16,6 +16,8 @@ export interface MediaGallerySettings {
 	showCaptions: boolean;
 	captionMaxLines: number;
 	defaultView: GalleryViewType;
+	/** When Media Extended is installed, open local/direct URL videos in its player. Hosted URLs always use ME. */
+	useMediaExtendedPlayback: boolean;
 }
 
 export const DEFAULT_SETTINGS: MediaGallerySettings = {
@@ -25,6 +27,7 @@ export const DEFAULT_SETTINGS: MediaGallerySettings = {
 	showCaptions: true,
 	captionMaxLines: 2,
 	defaultView: "grid",
+	useMediaExtendedPlayback: true,
 };
 
 export const IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
@@ -81,12 +84,16 @@ export interface ParsedGalleryBlock {
 	errors: ParseError[];
 }
 
+export type UrlVariant = "direct" | "hosted";
+
 export interface GalleryItem {
 	id: string;
 	mediaKind: MediaKind;
 	source: "local" | "url";
 	path?: string;
 	url?: string;
+	/** Distinguishes direct file URLs from hosted platform links (YouTube, etc.). */
+	urlVariant?: UrlVariant;
 	caption?: string;
 	src: string;
 	name: string;
