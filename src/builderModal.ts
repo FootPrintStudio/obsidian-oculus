@@ -32,9 +32,17 @@ export class GalleryBuilderModal extends Modal {
 	private editor: Editor;
 	private view: GalleryViewType;
 	private filter: MediaFilter;
+	private gridColumns = "auto";
+	private thumbnailColumns = "auto";
+	private carouselHeight = "";
+	private carouselShowThumbnails = false;
+	private masonryRowHeight = "";
+	private masonryColumnWidth = "auto";
 	private sources: BuilderSource[] = [];
 	private previewEl: HTMLElement | null = null;
 	private sourcesContainer: HTMLElement | null = null;
+	private layoutSection: HTMLElement | null = null;
+	private layoutSettings: Setting[] = [];
 
 	constructor(app: App, plugin: MediaGalleryPlugin, editor: Editor) {
 		super(app);
@@ -67,9 +75,13 @@ export class GalleryBuilderModal extends Modal {
 				for (const view of VIEW_TYPES) dropdown.addOption(view, VIEW_LABELS[view]);
 				dropdown.setValue(this.view).onChange((value) => {
 					this.view = value as GalleryViewType;
+					this.refreshLayoutSettings();
 					this.refreshPreview();
 				});
 			});
+
+		this.layoutSection = layoutSection;
+		this.refreshLayoutSettings();
 
 		new Setting(layoutSection)
 			.setName("Filter")
@@ -124,6 +136,109 @@ export class GalleryBuilderModal extends Modal {
 			.addEventListener("click", () => this.insertBlock());
 
 		this.refreshPreview();
+	}
+
+	private refreshLayoutSettings(): void {
+		for (const setting of this.layoutSettings) setting.settingEl.remove();
+		this.layoutSettings = [];
+
+		if (!this.layoutSection) return;
+
+		if (this.view === "grid") {
+			this.layoutSettings.push(
+				new Setting(this.layoutSection)
+					.setName("Grid columns")
+					.setDesc('Per-block column layout: "auto", a number like "3", or a CSS value.')
+					.addText((text) =>
+						text
+							.setPlaceholder("auto")
+							.setValue(this.gridColumns)
+							.onChange((value) => {
+								this.gridColumns = value.trim() || "auto";
+								this.refreshPreview();
+							}),
+					),
+			);
+		}
+
+		if (this.view === "thumbnails") {
+			this.layoutSettings.push(
+				new Setting(this.layoutSection)
+					.setName("Thumbnail columns")
+					.setDesc('Per-block column layout: "auto", a number like "3", or a CSS value.')
+					.addText((text) =>
+						text
+							.setPlaceholder("auto")
+							.setValue(this.thumbnailColumns)
+							.onChange((value) => {
+								this.thumbnailColumns = value.trim() || "auto";
+								this.refreshPreview();
+							}),
+					),
+			);
+		}
+
+		if (this.view === "carousel") {
+			this.layoutSettings.push(
+				new Setting(this.layoutSection)
+					.setName("Carousel height")
+					.setDesc("Main slide height in pixels, e.g. 500 or 500px. Leave empty for default (420px).")
+					.addText((text) =>
+						text
+							.setPlaceholder("420")
+							.setValue(this.carouselHeight)
+							.onChange((value) => {
+								this.carouselHeight = value.trim();
+								this.refreshPreview();
+							}),
+					),
+			);
+			this.layoutSettings.push(
+				new Setting(this.layoutSection)
+					.setName("Show thumbnails")
+					.setDesc('Adds "show" to the VIEW line — thumbnail strip under the main slide.')
+					.addToggle((toggle) =>
+						toggle.setValue(this.carouselShowThumbnails).onChange((value) => {
+							this.carouselShowThumbnails = value;
+							this.refreshPreview();
+						}),
+					),
+			);
+		}
+
+		if (this.view === "masonry-h") {
+			this.layoutSettings.push(
+				new Setting(this.layoutSection)
+					.setName("Row height")
+					.setDesc("Target row height for justified horizontal masonry, e.g. 300 or 300px.")
+					.addText((text) =>
+						text
+							.setPlaceholder("200")
+							.setValue(this.masonryRowHeight)
+							.onChange((value) => {
+								this.masonryRowHeight = value.trim();
+								this.refreshPreview();
+							}),
+					),
+			);
+		}
+
+		if (this.view === "masonry-v") {
+			this.layoutSettings.push(
+				new Setting(this.layoutSection)
+					.setName("Column width")
+					.setDesc('Per-block column layout: "auto", a number like "3", "200px", or minmax CSS.')
+					.addText((text) =>
+						text
+							.setPlaceholder("auto")
+							.setValue(this.masonryColumnWidth)
+							.onChange((value) => {
+								this.masonryColumnWidth = value.trim() || "auto";
+								this.refreshPreview();
+							}),
+					),
+			);
+		}
 	}
 
 	private addLocalSource(): void {
@@ -267,6 +382,13 @@ export class GalleryBuilderModal extends Modal {
 		});
 	}
 
+	private parseHeightInput(raw: string): number | null {
+		const trimmed = raw.trim();
+		if (!trimmed) return null;
+		const match = /^(\d+)\s*px?$/i.exec(trimmed);
+		return match?.[1] ? Number.parseInt(match[1], 10) : null;
+	}
+
 	private buildBlockBody(): string {
 		const locals = this.sources
 			.filter((s): s is LocalSource => s.kind === "local" && s.path.length > 0)
@@ -289,6 +411,12 @@ export class GalleryBuilderModal extends Modal {
 		return formatMediaGalleryBlock({
 			view: this.view,
 			filter: this.filter,
+			gridColumns: this.view === "grid" ? this.gridColumns : undefined,
+			thumbnailColumns: this.view === "thumbnails" ? this.thumbnailColumns : undefined,
+			carouselHeightPx: this.view === "carousel" ? this.parseHeightInput(this.carouselHeight) : undefined,
+			carouselShowThumbnails: this.view === "carousel" ? this.carouselShowThumbnails : undefined,
+			masonryRowHeightPx: this.view === "masonry-h" ? this.parseHeightInput(this.masonryRowHeight) : undefined,
+			masonryColumnWidth: this.view === "masonry-v" ? this.masonryColumnWidth : undefined,
 			locals,
 			urls,
 		});

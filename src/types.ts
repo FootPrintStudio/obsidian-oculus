@@ -16,7 +16,6 @@ export interface MediaGallerySettings {
 	showCaptions: boolean;
 	captionMaxLines: number;
 	defaultView: GalleryViewType;
-	gridColumns: string;
 }
 
 export const DEFAULT_SETTINGS: MediaGallerySettings = {
@@ -26,7 +25,6 @@ export const DEFAULT_SETTINGS: MediaGallerySettings = {
 	showCaptions: true,
 	captionMaxLines: 2,
 	defaultView: "grid",
-	gridColumns: "auto",
 };
 
 export const IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
@@ -67,6 +65,18 @@ export type MediaEntry = LocalMediaEntry | UrlMediaEntry;
 export interface ParsedGalleryBlock {
 	view: GalleryViewType;
 	filter: MediaFilter;
+	/** Grid column template; only used when view is `grid`. Values: `auto`, a number, or raw CSS. */
+	gridColumns: string;
+	/** Thumbnail column template; only used when view is `thumbnails`. Values: `auto`, a number, or raw CSS. */
+	thumbnailColumns: string;
+	/** Carousel main stage height in px; null uses default (420). */
+	carouselHeightPx: number | null;
+	/** Show thumbnail strip under carousel main view. */
+	carouselShowThumbnails: boolean;
+	/** Horizontal masonry target row height in px; null uses default (200). */
+	masonryRowHeightPx: number | null;
+	/** Vertical masonry column width; `auto`, a number, `200px`, or minmax CSS. */
+	masonryColumnWidth: string;
 	entries: MediaEntry[];
 	errors: ParseError[];
 }

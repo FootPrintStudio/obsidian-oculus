@@ -18,13 +18,66 @@ Use a `media-gallery` fenced code block with two sections: **OPTIONS** and **MED
 
 ```media-gallery
 OPTIONS:
-VIEW: grid
+VIEW: grid | repeat(auto-fill, minmax(160px, 1fr))
 FILTER: images
 MEDIA:
-LOCAL: Characters/Art/ recursive | Shared caption for folder items
-LOCAL: Images/hero.png | Single file caption
-URL: https://example.com/reference.jpg | Remote caption
+LOCAL: Media Gallery Test/Assets/ recursive | From Assets folder
+LOCAL: Media Gallery Test/Assets/sample.png | Single file (rename if needed)
 ```
+
+### VIEW options (grid only)
+
+Append column layout after `|` on the VIEW line:
+
+| Value | Result |
+|-------|--------|
+| `VIEW: grid` | Responsive auto columns (default) |
+| `VIEW: grid \| auto` | Same as default |
+| `VIEW: grid \| 3` | Fixed 3-column grid |
+| `VIEW: grid \| 200px` | ~200px minimum column width |
+| `VIEW: grid \| repeat(auto-fill, minmax(160px, 1fr))` | Raw CSS `grid-template-columns` |
+
+### VIEW options (thumbnails only)
+
+Same column conventions as grid; default auto uses ~96px minimum tile size:
+
+| Value | Result |
+|-------|--------|
+| `VIEW: thumbnails` | Responsive auto columns (~96px tiles) |
+| `VIEW: thumbnails \| auto` | Same as default |
+| `VIEW: thumbnails \| 3` | Fixed 3 columns |
+| `VIEW: thumbnails \| 120px` | ~120px minimum tile size |
+| `VIEW: thumbnails \| repeat(auto-fill, minmax(120px, 1fr))` | Raw CSS `grid-template-columns` |
+
+### VIEW options (carousel only)
+
+Append options after `|` on the VIEW line (comma-separated):
+
+| Syntax | Result |
+|--------|--------|
+| `VIEW: carousel` | Default height (420px), no thumbnails |
+| `VIEW: carousel \| 500px` | Main slide height 500px |
+| `VIEW: carousel \| show` | Thumbnail strip under main slide |
+| `VIEW: carousel \| 500px, show` | Both height and thumbnails |
+
+### VIEW options (masonry-h only)
+
+| Syntax | Result |
+|--------|--------|
+| `VIEW: masonry-h` | Default row height (200px), Allusion-style justified rows |
+| `VIEW: masonry-h \| 300px` | Target row height 300px; rows scale to fill width |
+
+### VIEW options (masonry-v only)
+
+Append column width after `|` on the VIEW line (same conventions as grid columns):
+
+| Syntax | Result |
+|--------|--------|
+| `VIEW: masonry-v` | Responsive auto columns (~160px target width) |
+| `VIEW: masonry-v \| auto` | Same as default |
+| `VIEW: masonry-v \| 200px` | ~200px target column width |
+| `VIEW: masonry-v \| 3` | Fixed 3 columns |
+| `VIEW: masonry-v \| minmax(200px, 1fr)` | Uses 200px minimum from minmax |
 
 ### Parser rules
 
@@ -42,11 +95,11 @@ URL: https://example.com/reference.jpg | Remote caption
 
 | Value | Description |
 |-------|-------------|
-| `grid` | Responsive grid (configurable columns in settings) |
-| `thumbnails` | Compact square thumbnails |
-| `carousel` | Single slide with prev/next controls |
-| `masonry-h` | CSS column masonry |
-| `masonry-v` | Multi-column vertical masonry |
+| `grid` | Responsive grid; optional `\| columns` for layout (see above) |
+| `thumbnails` | Compact square thumbnails; optional `\| columns` for layout (see above) |
+| `carousel` | Slideshow; optional `\| height, show` for px height and thumbnail strip |
+| `masonry-h` | Allusion-style horizontal masonry; optional `\| 300px` row height |
+| `masonry-v` | Allusion-style vertical masonry; optional `\| column width` (see above) |
 
 ### FILTER values
 
@@ -68,7 +121,6 @@ Open **Settings → Community plugins → Media Gallery** (Settings | README tab
 | Show captions | Toggle caption display on tiles and lightbox |
 | Caption max lines | Line clamp for tile captions (1–5) |
 | Default view | Used when VIEW is omitted |
-| Grid columns | CSS grid-template-columns value (`auto` = responsive) |
 
 ## Commands
 

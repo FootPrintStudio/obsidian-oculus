@@ -1,3 +1,4 @@
+import { DEFAULT_COLUMN_OPTION } from "./layout/columnOptions";
 import {
 	type GalleryViewType,
 	type LocalMediaEntry,
@@ -10,6 +11,11 @@ import {
 } from "./types";
 
 type Section = "none" | "options" | "media";
+
+const DEFAULT_GRID_COLUMNS = DEFAULT_COLUMN_OPTION;
+const DEFAULT_THUMBNAIL_COLUMNS = DEFAULT_COLUMN_OPTION;
+const DEFAULT_CAROUSEL_HEIGHT_PX = 420;
+const DEFAULT_MASONRY_ROW_HEIGHT_PX = 200;
 
 function normalizeLine(raw: string): string {
 	let line = raw.trim();
@@ -26,26 +32,142 @@ function splitCaption(value: string): { main: string; caption?: string } {
 	};
 }
 
-function parseViewValue(value: string, line: number, errors: ParseError[]): GalleryViewType | null {
-	if (value.includes(",")) {
+export function resolveCarouselHeightPx(value: number | null): number {
+	return value ?? DEFAULT_CAROUSEL_HEIGHT_PX;
+}
+
+export function resolveMasonryRowHeightPx(value: number | null): number {
+	return value ?? DEFAULT_MASONRY_ROW_HEIGHT_PX;
+}
+
+function parseMasonryHOptions(optionPart: string, line: number, errors: ParseError[]): number | null {
+	if (!optionPart) return null;
+
+	const token = optionPart.split(",")[0]?.trim() ?? "";
+	const heightMatch = /^(\d+)\s*px$/i.exec(token);
+	if (heightMatch?.[1]) return Number.parseInt(heightMatch[1], 10);
+
+	errors.push({
+		line,
+		message: `Unknown masonry-h VIEW option "${token}". Use row height like 300px.`,
+	});
+	return null;
+}
+
+function parseCarouselOptions(
+	optionPart: string,
+	line: number,
+	errors: ParseError[],
+): { heightPx: number | null; showThumbnails: boolean } {
+	let heightPx: number | null = null;
+	let showThumbnails = false;
+
+	if (!optionPart) return { heightPx, showThumbnails };
+
+	for (const token of optionPart.split(",").map((part) => part.trim()).filter(Boolean)) {
+		const lower = token.toLowerCase();
+		if (lower === "show") {
+			showThumbnails = true;
+			continue;
+		}
+
+		const heightMatch = /^(\d+)\s*px$/i.exec(token);
+		if (heightMatch?.[1]) {
+			heightPx = Number.parseInt(heightMatch[1], 10);
+			continue;
+		}
+
 		errors.push({
 			line,
-			message: `VIEW accepts a single value (got "${value}"). Use one of: ${VIEW_TYPES.join(", ")}`,
+			message: `Unknown carousel VIEW option "${token}". Use height like 500px and/or "show" for thumbnails.`,
+		});
+	}
+
+	return { heightPx, showThumbnails };
+}
+
+interface ViewParseResult {
+	view: GalleryViewType;
+	gridColumns: string;
+	thumbnailColumns: string;
+	carouselHeightPx: number | null;
+	carouselShowThumbnails: boolean;
+	masonryRowHeightPx: number | null;
+	masonryColumnWidth: string;
+}
+
+const VIEWS_WITH_OPTIONS: GalleryViewType[] = ["grid", "thumbnails", "carousel", "masonry-h", "masonry-v"];
+
+function parseViewLine(value: string, line: number, errors: ParseError[]): ViewParseResult | null {
+	const pipeIndex = value.indexOf("|");
+	const viewPart = (pipeIndex === -1 ? value : value.slice(0, pipeIndex)).trim();
+	const optionPart = pipeIndex === -1 ? "" : value.slice(pipeIndex + 1).trim();
+
+	if (viewPart.includes(",")) {
+		errors.push({
+			line,
+			message: `VIEW type must be a single value (got "${viewPart}"). Use one of: ${VIEW_TYPES.join(", ")}`,
 		});
 		return null;
 	}
-	const normalized = value.toLowerCase().trim() as GalleryViewType;
+
+	const normalized = viewPart.toLowerCase() as GalleryViewType;
 	if (!VIEW_TYPES.includes(normalized)) {
 		errors.push({
 			line,
-			message: `Unknown VIEW "${value}". Use one of: ${VIEW_TYPES.join(", ")}`,
+			message: `Unknown VIEW "${viewPart}". Use one of: ${VIEW_TYPES.join(", ")}`,
 		});
 		return null;
 	}
-	return normalized;
+
+	if (optionPart && !VIEWS_WITH_OPTIONS.includes(normalized)) {
+		errors.push({
+			line,
+			message: `VIEW options after | are only supported for grid, thumbnails, carousel, masonry-h, and masonry-v (got "${normalized}").`,
+		});
+		return null;
+	}
+
+	let gridColumns = DEFAULT_GRID_COLUMNS;
+	let thumbnailColumns = DEFAULT_THUMBNAIL_COLUMNS;
+	let carouselHeightPx: number | null = null;
+	let carouselShowThumbnails = false;
+	let masonryRowHeightPx: number | null = null;
+	let masonryColumnWidth = DEFAULT_COLUMN_OPTION;
+
+	if (normalized === "grid") {
+		gridColumns = optionPart || DEFAULT_GRID_COLUMNS;
+	} else if (normalized === "thumbnails") {
+		thumbnailColumns = optionPart || DEFAULT_THUMBNAIL_COLUMNS;
+	} else if (normalized === "carousel" && optionPart) {
+		const carousel = parseCarouselOptions(optionPart, line, errors);
+		carouselHeightPx = carousel.heightPx;
+		carouselShowThumbnails = carousel.showThumbnails;
+	} else if (normalized === "masonry-h" && optionPart) {
+		masonryRowHeightPx = parseMasonryHOptions(optionPart, line, errors);
+	} else if (normalized === "masonry-v") {
+		masonryColumnWidth = optionPart || DEFAULT_COLUMN_OPTION;
+	}
+
+	return {
+		view: normalized,
+		gridColumns,
+		thumbnailColumns,
+		carouselHeightPx,
+		carouselShowThumbnails,
+		masonryRowHeightPx,
+		masonryColumnWidth,
+	};
 }
 
 function parseFilterValue(value: string, line: number, errors: ParseError[]): MediaFilter | null {
+	if (value.includes("|")) {
+		errors.push({
+			line,
+			message: `FILTER does not support options after | (got "${value}").`,
+		});
+		return null;
+	}
 	if (value.includes(",")) {
 		errors.push({
 			line,
@@ -108,6 +230,12 @@ export function parseMediaGalleryBlock(
 ): ParsedGalleryBlock {
 	const errors: ParseError[] = [];
 	let view: GalleryViewType = defaultView;
+	let gridColumns = DEFAULT_GRID_COLUMNS;
+	let thumbnailColumns = DEFAULT_THUMBNAIL_COLUMNS;
+	let carouselHeightPx: number | null = null;
+	let carouselShowThumbnails = false;
+	let masonryRowHeightPx: number | null = null;
+	let masonryColumnWidth = DEFAULT_COLUMN_OPTION;
 	let filter: MediaFilter = "images";
 	let section: Section = "none";
 	let sawView = false;
@@ -153,11 +281,17 @@ export function parseMediaGalleryBlock(
 
 		if (section === "options" || (section === "none" && (key === "VIEW" || key === "FILTER"))) {
 			if (key === "VIEW") {
-				const parsed = parseViewValue(value, lineNum, errors);
+				const parsed = parseViewLine(value, lineNum, errors);
 				if (parsed) {
 					if (sawView) errors.push({ line: lineNum, message: "Duplicate VIEW option." });
 					else {
-						view = parsed;
+						view = parsed.view;
+						gridColumns = parsed.gridColumns;
+						thumbnailColumns = parsed.thumbnailColumns;
+						carouselHeightPx = parsed.carouselHeightPx;
+						carouselShowThumbnails = parsed.carouselShowThumbnails;
+						masonryRowHeightPx = parsed.masonryRowHeightPx;
+						masonryColumnWidth = parsed.masonryColumnWidth;
 						sawView = true;
 					}
 				}
@@ -191,16 +325,86 @@ export function parseMediaGalleryBlock(
 		errors.push({ line: 1, message: "MEDIA section requires at least one LOCAL: or URL: entry." });
 	}
 
-	return { view, filter, entries, errors };
+	return {
+		view,
+		filter,
+		gridColumns,
+		thumbnailColumns,
+		carouselHeightPx,
+		carouselShowThumbnails,
+		masonryRowHeightPx,
+		masonryColumnWidth,
+		entries,
+		errors,
+	};
+}
+
+function formatViewLine(options: {
+	view: GalleryViewType;
+	gridColumns?: string;
+	thumbnailColumns?: string;
+	carouselHeightPx?: number | null;
+	carouselShowThumbnails?: boolean;
+	masonryRowHeightPx?: number | null;
+	masonryColumnWidth?: string;
+}): string {
+	if (options.view === "grid") {
+		const columns = (options.gridColumns ?? DEFAULT_GRID_COLUMNS).trim();
+		if (columns && columns.toLowerCase() !== "auto") {
+			return `VIEW: grid | ${columns}`;
+		}
+		return "VIEW: grid";
+	}
+
+	if (options.view === "thumbnails") {
+		const columns = (options.thumbnailColumns ?? DEFAULT_THUMBNAIL_COLUMNS).trim();
+		if (columns && columns.toLowerCase() !== "auto") {
+			return `VIEW: thumbnails | ${columns}`;
+		}
+		return "VIEW: thumbnails";
+	}
+
+	if (options.view === "carousel") {
+		const parts: string[] = [];
+		if (options.carouselHeightPx != null) parts.push(`${options.carouselHeightPx}px`);
+		if (options.carouselShowThumbnails) parts.push("show");
+		if (parts.length > 0) return `VIEW: carousel | ${parts.join(", ")}`;
+		return "VIEW: carousel";
+	}
+
+	if (options.view === "masonry-h" && options.masonryRowHeightPx != null) {
+		return `VIEW: masonry-h | ${options.masonryRowHeightPx}px`;
+	}
+
+	if (options.view === "masonry-v") {
+		const columns = (options.masonryColumnWidth ?? DEFAULT_COLUMN_OPTION).trim();
+		if (columns && columns.toLowerCase() !== "auto") {
+			return `VIEW: masonry-v | ${columns}`;
+		}
+		return "VIEW: masonry-v";
+	}
+
+	return `VIEW: ${options.view}`;
 }
 
 export function formatMediaGalleryBlock(options: {
 	view: GalleryViewType;
 	filter: MediaFilter;
+	gridColumns?: string;
+	thumbnailColumns?: string;
+	carouselHeightPx?: number | null;
+	carouselShowThumbnails?: boolean;
+	masonryRowHeightPx?: number | null;
+	masonryColumnWidth?: string;
 	locals: Array<{ path: string; recursive?: boolean; caption?: string }>;
 	urls: Array<{ url: string; caption?: string }>;
 }): string {
-	const lines: string[] = ["OPTIONS:", `VIEW: ${options.view}`, `FILTER: ${options.filter}`, "MEDIA:"];
+	const lines: string[] = [
+		"OPTIONS:",
+		formatViewLine(options),
+		`FILTER: ${options.filter}`,
+		"MEDIA:",
+	];
 
 	for (const local of options.locals) {
 		let path = local.path;

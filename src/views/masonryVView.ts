@@ -1,22 +1,63 @@
 import type { Component } from "obsidian";
+import { computeVerticalMasonry } from "../layout/verticalMasonry";
+import { DEFAULT_COLUMN_OPTION, parseColumnOption } from "../layout/columnOptions";
 import type { GalleryItem, MediaGallerySettings } from "../types";
+import { attachAspectRatioListener, PLACEHOLDER_ASPECT } from "./mediaAspect";
+import { observeGalleryLayout } from "./masonryLayout";
 import { createMediaTile } from "./renderGallery";
+
+const MASONRY_V_GAP_PX = 8;
 
 export function renderMasonryV(
 	container: HTMLElement,
 	items: GalleryItem[],
 	settings: MediaGallerySettings,
+	columnWidthOption: string,
 	onOpen: (index: number) => void,
-	_component: Component,
+	component: Component,
 ): void {
 	const wrap = container.createDiv({ cls: "mg-view mg-view-masonry-v" });
-	const columnCount = Math.min(3, Math.max(1, items.length));
-	const columns: HTMLElement[] = [];
-	for (let i = 0; i < columnCount; i++) {
-		columns.push(wrap.createDiv({ cls: "mg-masonry-col" }));
-	}
-	items.forEach((item, index) => {
-		const col = columns[index % columnCount];
-		if (col) createMediaTile(col, item, settings, onOpen, index);
-	});
+	const stage = wrap.createDiv({ cls: "mg-masonry-v-stage" });
+	const columnSpec = parseColumnOption(columnWidthOption || DEFAULT_COLUMN_OPTION);
+	const aspectRatios: Array<{ w: number; h: number } | null> = items.map(() => null);
+	let scheduleRebuild = (): void => {};
+
+	const rebuild = (width: number): void => {
+		const ratios = aspectRatios.map((ratio) => ratio ?? PLACEHOLDER_ASPECT);
+		const layout = computeVerticalMasonry(ratios, width, columnSpec, MASONRY_V_GAP_PX);
+
+		stage.empty();
+
+		const columnEls: HTMLElement[] = [];
+		for (let c = 0; c < layout.columnCount; c++) {
+			const col = stage.createDiv({ cls: "mg-masonry-v-col" });
+			col.style.width = `${layout.columnWidth}px`;
+			col.style.flexShrink = "0";
+			columnEls.push(col);
+		}
+
+		for (const placement of layout.placements) {
+			const item = items[placement.itemIndex];
+			const col = columnEls[placement.columnIndex];
+			if (!item || !col) continue;
+
+			const tile = createMediaTile(col, item, settings, onOpen, placement.itemIndex);
+			tile.addClass("mg-masonry-v-tile");
+			tile.style.height = `${placement.height}px`;
+
+			const media = tile.querySelector("img, video");
+			if (
+				(media instanceof HTMLImageElement || media instanceof HTMLVideoElement) &&
+				!aspectRatios[placement.itemIndex]
+			) {
+				const idx = placement.itemIndex;
+				attachAspectRatioListener(media, (ratio) => {
+					aspectRatios[idx] = ratio;
+					scheduleRebuild();
+				});
+			}
+		}
+	};
+
+	scheduleRebuild = observeGalleryLayout(wrap, component, rebuild, [container, stage]);
 }

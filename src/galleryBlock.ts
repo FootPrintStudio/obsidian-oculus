@@ -52,6 +52,7 @@ export class GalleryBlock extends MarkdownRenderChild {
 			parsed.view,
 			items,
 			this.plugin.settings,
+			parsed,
 		);
 	}
 }

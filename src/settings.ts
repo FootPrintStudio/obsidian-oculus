@@ -86,15 +86,5 @@ export class MediaGallerySettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				});
 			});
-
-		new Setting(containerEl)
-			.setName("Grid columns")
-			.setDesc('CSS value for grid view, e.g. "auto", "3", "repeat(auto-fill, minmax(160px, 1fr))".')
-			.addText((text) =>
-				text.setValue(this.plugin.settings.gridColumns).onChange(async (value) => {
-					this.plugin.settings.gridColumns = value.trim() || "auto";
-					await this.plugin.saveSettings();
-				}),
-			);
 	}
 }

@@ -1,5 +1,5 @@
 import { App, Component } from "obsidian";
-import type { GalleryItem, GalleryViewType, MediaGallerySettings } from "../types";
+import type { GalleryItem, MediaGallerySettings, ParsedGalleryBlock } from "../types";
 import { openLightbox } from "./lightbox";
 import { renderCarousel } from "./carouselView";
 import { renderGrid } from "./gridView";
@@ -11,9 +11,10 @@ export function renderGalleryView(
 	app: App,
 	container: HTMLElement,
 	component: Component,
-	viewType: GalleryViewType,
+	viewType: ParsedGalleryBlock["view"],
 	items: GalleryItem[],
 	settings: MediaGallerySettings,
+	parsed: ParsedGalleryBlock,
 ): void {
 	container.empty();
 	container.addClass("mg-gallery-root");
@@ -24,19 +25,41 @@ export function renderGalleryView(
 
 	switch (viewType) {
 		case "grid":
-			renderGrid(container, items, settings, onOpen, component);
+			renderGrid(container, items, settings, parsed.gridColumns, onOpen, component);
 			break;
 		case "thumbnails":
-			renderThumbnails(container, items, settings, onOpen, component);
+			renderThumbnails(container, items, settings, parsed.thumbnailColumns, onOpen, component);
 			break;
 		case "carousel":
-			renderCarousel(container, items, settings, onOpen, component);
+			renderCarousel(
+				container,
+				items,
+				settings,
+				parsed.carouselHeightPx,
+				parsed.carouselShowThumbnails,
+				onOpen,
+				component,
+			);
 			break;
 		case "masonry-h":
-			renderMasonryH(container, items, settings, onOpen, component);
+			renderMasonryH(
+				container,
+				items,
+				settings,
+				parsed.masonryRowHeightPx,
+				onOpen,
+				component,
+			);
 			break;
 		case "masonry-v":
-			renderMasonryV(container, items, settings, onOpen, component);
+			renderMasonryV(
+				container,
+				items,
+				settings,
+				parsed.masonryColumnWidth,
+				onOpen,
+				component,
+			);
 			break;
 	}
 }
@@ -55,6 +78,38 @@ export function renderWarningPanel(container: HTMLElement, messages: string[]): 
 	for (const message of messages) {
 		wrap.createDiv({ cls: "mg-gallery-warning-line", text: message });
 	}
+}
+
+const NATIVE_VIEWER_EVENTS = ["click", "mousedown", "dblclick", "pointerdown"] as const;
+
+/** Stop Obsidian's built-in image viewer from opening on gallery tiles. */
+function suppressNativeImageViewer(tile: HTMLElement, onOpen: () => void): void {
+	tile.setAttr("role", "button");
+	tile.setAttr("tabindex", "0");
+
+	const stop = (event: Event): void => {
+		event.preventDefault();
+		event.stopPropagation();
+		// Obsidian 1.12+ may register capture handlers on the workspace; block immediate propagation too.
+		event.stopImmediatePropagation();
+	};
+
+	for (const media of Array.from(tile.querySelectorAll("img, video"))) {
+		media.classList.add("mg-native-suppressed");
+		for (const type of NATIVE_VIEWER_EVENTS) {
+			media.addEventListener(type, stop, { capture: true });
+		}
+	}
+
+	tile.addEventListener("click", (event) => {
+		stop(event);
+		onOpen();
+	});
+	tile.addEventListener("keydown", (event) => {
+		if (event.key !== "Enter" && event.key !== " ") return;
+		stop(event);
+		onOpen();
+	});
 }
 
 function attachLazyLoad(el: HTMLElement): void {
@@ -97,11 +152,16 @@ export function createMediaTile(
 		});
 	} else {
 		mediaWrap.createEl("img", {
-			attr: { src: item.src, alt: item.name, loading: "lazy" },
+			attr: {
+				src: item.src,
+				alt: item.name,
+				loading: "lazy",
+				draggable: "false",
+			},
 		});
 	}
 
-	tile.addEventListener("click", () => onOpen(index));
+	suppressNativeImageViewer(tile, () => onOpen(index));
 	attachLazyLoad(tile);
 
 	if (settings.showCaptions && item.caption) {
