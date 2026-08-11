@@ -205,6 +205,16 @@ Remote vault (recommended):
 ./build.sh
 ```
 
+## Install (BRAT)
+
+This plugin is not in the Obsidian Community Plugins catalog. Install via [BRAT](https://github.com/TfTHacker/obsidian42-brat):
+
+1. Enable **BRAT** in Community Plugins.
+2. **Add Beta plugin** → `FootPrintStudio/obsidian-media-gallery`
+3. Install / update from BRAT when releases are published.
+
+BRAT requires a [GitHub Release](https://github.com/FootPrintStudio/obsidian-media-gallery/releases) with `main.js`, `manifest.json`, `styles.css`, and `versions.json` attached.
+
 ## Credits
 
 Media Gallery is an independent FootPrintStudio plugin with its own `media-gallery` block syntax and settings. It was inspired in part by [Gallery View](https://github.com/mkshp-dev/obsidian-gallery-plugin) — particularly the idea of embedding configurable media galleries directly in notes.
