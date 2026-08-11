@@ -25,29 +25,51 @@ LOCAL: Media Gallery Test/Assets/ recursive | From Assets folder
 LOCAL: Media Gallery Test/Assets/sample.png | Single file (rename if needed)
 ```
 
-### VIEW options (grid only)
+### VIEW options — column layout (grid, thumbnails, masonry-v)
 
-Append column layout after `|` on the VIEW line:
+`grid`, `thumbnails`, and `masonry-v` share one column-option syntax. Append the same kind of value after `|` on the VIEW line:
 
-| Value | Result |
-|-------|--------|
-| `VIEW: grid` | Responsive auto columns (default) |
-| `VIEW: grid \| auto` | Same as default |
-| `VIEW: grid \| 3` | Fixed 3-column grid |
-| `VIEW: grid \| 200px` | ~200px minimum column width |
-| `VIEW: grid \| repeat(auto-fill, minmax(160px, 1fr))` | Raw CSS `grid-template-columns` |
+| Syntax | Meaning |
+|--------|---------|
+| *(omit)* or `auto` | Responsive columns using the view’s default size (see below) |
+| `3` | Fixed column count |
+| `200px` | Target minimum column / tile width |
+| `minmax(200px, 1fr)` | Uses the px minimum extracted from minmax |
+| `repeat(auto-fill, minmax(160px, 1fr))` | Raw CSS `grid-template-columns` (**grid** and **thumbnails** only) |
 
-### VIEW options (thumbnails only)
+Each view applies the parsed option differently:
 
-Same column conventions as grid; default auto uses ~96px minimum tile size:
+| View | Default when `auto` | Applied as |
+|------|---------------------|------------|
+| `grid` | ~160px minimum column | CSS grid columns; tiles keep aspect ratio (`contain`) |
+| `thumbnails` | ~96px minimum tile | CSS grid columns; square tiles (`cover`) |
+| `masonry-v` | ~160px target column | Shortest-column masonry columns; heights from aspect ratio |
 
-| Value | Result |
-|-------|--------|
-| `VIEW: thumbnails` | Responsive auto columns (~96px tiles) |
-| `VIEW: thumbnails \| auto` | Same as default |
-| `VIEW: thumbnails \| 3` | Fixed 3 columns |
-| `VIEW: thumbnails \| 120px` | ~120px minimum tile size |
-| `VIEW: thumbnails \| repeat(auto-fill, minmax(120px, 1fr))` | Raw CSS `grid-template-columns` |
+Examples:
+
+```media-gallery
+OPTIONS:
+VIEW: grid | 3
+FILTER: images
+MEDIA:
+LOCAL: Media Gallery Test/Assets/ recursive
+```
+
+```media-gallery
+OPTIONS:
+VIEW: thumbnails | 120px
+FILTER: images
+MEDIA:
+LOCAL: Media Gallery Test/Assets/ recursive
+```
+
+```media-gallery
+OPTIONS:
+VIEW: masonry-v | 200px
+FILTER: images
+MEDIA:
+LOCAL: Media Gallery Test/Assets/ recursive
+```
 
 ### VIEW options (carousel only)
 
@@ -67,18 +89,6 @@ Append options after `|` on the VIEW line (comma-separated):
 | `VIEW: masonry-h` | Default row height (200px), Allusion-style justified rows |
 | `VIEW: masonry-h \| 300px` | Target row height 300px; rows scale to fill width |
 
-### VIEW options (masonry-v only)
-
-Append column width after `|` on the VIEW line (same conventions as grid columns):
-
-| Syntax | Result |
-|--------|--------|
-| `VIEW: masonry-v` | Responsive auto columns (~160px target width) |
-| `VIEW: masonry-v \| auto` | Same as default |
-| `VIEW: masonry-v \| 200px` | ~200px target column width |
-| `VIEW: masonry-v \| 3` | Fixed 3 columns |
-| `VIEW: masonry-v \| minmax(200px, 1fr)` | Uses 200px minimum from minmax |
-
 ### Parser rules
 
 | Rule | Detail |
@@ -95,11 +105,11 @@ Append column width after `|` on the VIEW line (same conventions as grid columns
 
 | Value | Description |
 |-------|-------------|
-| `grid` | Responsive grid; optional `\| columns` for layout (see above) |
-| `thumbnails` | Compact square thumbnails; optional `\| columns` for layout (see above) |
+| `grid` | Responsive grid; optional `\| column layout` (shared syntax above) |
+| `thumbnails` | Compact square thumbnails; optional `\| column layout` (shared syntax above) |
 | `carousel` | Slideshow; optional `\| height, show` for px height and thumbnail strip |
 | `masonry-h` | Allusion-style horizontal masonry; optional `\| 300px` row height |
-| `masonry-v` | Allusion-style vertical masonry; optional `\| column width` (see above) |
+| `masonry-v` | Allusion-style vertical masonry; optional `\| column layout` (shared syntax above) |
 
 ### FILTER values
 
