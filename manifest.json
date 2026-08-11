@@ -1,0 +1,10 @@
+{
+	"id": "media-gallery",
+	"name": "Media Gallery",
+	"version": "1.0.0",
+	"minAppVersion": "1.5.0",
+	"description": "Render local vault media and remote images in grid, thumbnail, carousel, and masonry galleries.",
+	"author": "FootPrintStudio",
+	"authorUrl": "https://github.com/FootPrintStudio",
+	"isDesktopOnly": false
+}
