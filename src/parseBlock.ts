@@ -6,6 +6,7 @@ import {
 	type MediaFilter,
 	type ParseError,
 	type ParsedGalleryBlock,
+	type SearchMediaEntry,
 	MEDIA_FILTERS,
 	VIEW_TYPES,
 } from "./types";
@@ -186,13 +187,7 @@ function parseFilterValue(value: string, line: number, errors: ParseError[]): Me
 	return normalized;
 }
 
-function parseLocalLine(rest: string, line: number, errors: ParseError[]): LocalMediaEntry | null {
-	const { main, caption } = splitCaption(rest);
-	if (!main) {
-		errors.push({ line, message: "LOCAL entry is missing a path." });
-		return null;
-	}
-
+function parsePathAndRecursive(main: string): { path: string; recursive: boolean } {
 	let path = main;
 	let recursive = path.endsWith("/");
 	if (path.endsWith("/")) path = path.slice(0, -1);
@@ -203,12 +198,53 @@ function parseLocalLine(rest: string, line: number, errors: ParseError[]): Local
 		path = path.slice(0, recursiveMatch.index).trim();
 	}
 
+	return { path, recursive };
+}
+
+function parseLocalLine(rest: string, line: number, errors: ParseError[]): LocalMediaEntry | null {
+	const { main, caption } = splitCaption(rest);
+	if (!main) {
+		errors.push({ line, message: "LOCAL entry is missing a path." });
+		return null;
+	}
+
+	const { path, recursive } = parsePathAndRecursive(main);
 	if (!path) {
 		errors.push({ line, message: "LOCAL entry is missing a path." });
 		return null;
 	}
 
 	return { kind: "local", path, recursive, caption, line };
+}
+
+function parseSearchLine(rest: string, line: number, errors: ParseError[]): SearchMediaEntry | null {
+	const pipeIndex = rest.indexOf("|");
+	if (pipeIndex === -1) {
+		errors.push({
+			line,
+			message: 'SEARCH entry requires a title query after "|".',
+		});
+		return null;
+	}
+
+	const main = rest.slice(0, pipeIndex).trim();
+	const query = rest.slice(pipeIndex + 1).trim();
+	if (!main) {
+		errors.push({ line, message: "SEARCH entry is missing a folder path." });
+		return null;
+	}
+	if (!query) {
+		errors.push({ line, message: "SEARCH entry is missing a title query." });
+		return null;
+	}
+
+	const { path, recursive } = parsePathAndRecursive(main);
+	if (!path) {
+		errors.push({ line, message: "SEARCH entry is missing a folder path." });
+		return null;
+	}
+
+	return { kind: "search", path, recursive, query, line };
 }
 
 function parseUrlLine(rest: string, line: number, errors: ParseError[]): MediaEntry | null {
@@ -266,7 +302,7 @@ export function parseMediaGalleryBlock(
 		const key = line.slice(0, colonIndex).trim().toUpperCase();
 		const value = line.slice(colonIndex + 1).trim();
 
-		if (key === "LOCAL" || key === "URL") {
+		if (key === "LOCAL" || key === "SEARCH" || key === "URL") {
 			section = "media";
 		} else if (key === "VIEW" || key === "FILTER") {
 			if (section === "media") {
@@ -308,21 +344,30 @@ export function parseMediaGalleryBlock(
 			continue;
 		}
 
-		if (section === "media" || key === "LOCAL" || key === "URL") {
+		if (section === "media" || key === "LOCAL" || key === "SEARCH" || key === "URL") {
 			if (key === "LOCAL") {
 				const entry = parseLocalLine(value, lineNum, errors);
+				if (entry) entries.push(entry);
+			} else if (key === "SEARCH") {
+				const entry = parseSearchLine(value, lineNum, errors);
 				if (entry) entries.push(entry);
 			} else if (key === "URL") {
 				const entry = parseUrlLine(value, lineNum, errors);
 				if (entry) entries.push(entry);
 			} else {
-				errors.push({ line: lineNum, message: `Expected LOCAL: or URL: in MEDIA section (got ${key}).` });
+				errors.push({
+					line: lineNum,
+					message: `Expected LOCAL:, SEARCH:, or URL: in MEDIA section (got ${key}).`,
+				});
 			}
 		}
 	}
 
 	if (entries.length === 0 && errors.length === 0) {
-		errors.push({ line: 1, message: "MEDIA section requires at least one LOCAL: or URL: entry." });
+		errors.push({
+			line: 1,
+			message: "MEDIA section requires at least one LOCAL:, SEARCH:, or URL: entry.",
+		});
 	}
 
 	return {
@@ -387,6 +432,11 @@ function formatViewLine(options: {
 	return `VIEW: ${options.view}`;
 }
 
+export type FormattedMediaSource =
+	| { kind: "local"; path: string; recursive?: boolean; caption?: string }
+	| { kind: "search"; path: string; recursive?: boolean; query: string }
+	| { kind: "url"; url: string; caption?: string };
+
 export function formatMediaGalleryBlock(options: {
 	view: GalleryViewType;
 	filter: MediaFilter;
@@ -396,8 +446,10 @@ export function formatMediaGalleryBlock(options: {
 	carouselShowThumbnails?: boolean;
 	masonryRowHeightPx?: number | null;
 	masonryColumnWidth?: string;
-	locals: Array<{ path: string; recursive?: boolean; caption?: string }>;
-	urls: Array<{ url: string; caption?: string }>;
+	sources?: FormattedMediaSource[];
+	locals?: Array<{ path: string; recursive?: boolean; caption?: string }>;
+	searches?: Array<{ path: string; recursive?: boolean; query: string }>;
+	urls?: Array<{ url: string; caption?: string }>;
 }): string {
 	const lines: string[] = [
 		"OPTIONS:",
@@ -406,16 +458,28 @@ export function formatMediaGalleryBlock(options: {
 		"MEDIA:",
 	];
 
-	for (const local of options.locals) {
-		let path = local.path;
-		if (local.recursive) path = `${path.replace(/\/$/, "")} recursive`;
-		const caption = local.caption ? ` | ${local.caption}` : "";
-		lines.push(`LOCAL: ${path}${caption}`);
-	}
+	const sources: FormattedMediaSource[] =
+		options.sources ??
+		[
+			...(options.locals ?? []).map((local) => ({ kind: "local" as const, ...local })),
+			...(options.searches ?? []).map((search) => ({ kind: "search" as const, ...search })),
+			...(options.urls ?? []).map((url) => ({ kind: "url" as const, ...url })),
+		];
 
-	for (const url of options.urls) {
-		const caption = url.caption ? ` | ${url.caption}` : "";
-		lines.push(`URL: ${url.url}${caption}`);
+	for (const source of sources) {
+		if (source.kind === "local") {
+			let path = source.path;
+			if (source.recursive) path = `${path.replace(/\/$/, "")} recursive`;
+			const caption = source.caption ? ` | ${source.caption}` : "";
+			lines.push(`LOCAL: ${path}${caption}`);
+		} else if (source.kind === "search") {
+			let path = source.path;
+			if (source.recursive) path = `${path.replace(/\/$/, "")} recursive`;
+			lines.push(`SEARCH: ${path} | ${source.query}`);
+		} else {
+			const caption = source.caption ? ` | ${source.caption}` : "";
+			lines.push(`URL: ${source.url}${caption}`);
+		}
 	}
 
 	return lines.join("\n");

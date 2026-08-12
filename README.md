@@ -1,13 +1,14 @@
 # Media Gallery
 
-FootPrintStudio plugin for Obsidian: render local vault media and remote images/videos in grid, thumbnail, carousel, and masonry layouts inside notes.
+FootPrintStudio plugin for Obsidian: render local, searched, and remote media in grid, thumbnail, carousel, and masonry layouts inside notes.
 
 ## Features
 
 - **Local media** — single files, folders, or recursive folder scans
+- **Title search** — build galleries from media filenames containing text within a folder
 - **Remote media** — `URL:` lines for images, direct video links, and hosted platforms (YouTube, Vimeo, etc.)
 - **Views** — `grid`, `thumbnails`, `carousel`, `masonry-h`, `masonry-v`
-- **Filter** — `images`, `video`, or `all` (applies to LOCAL folder scans and URL entries)
+- **Filter** — `images`, `video`, or `all` (applies to LOCAL folder scans, SEARCH sources, and URL entries)
 - **Lightbox** — prev/next, Escape, arrow keys, basic zoom on images, native video controls
 - **Media Extended** — video playback via [Media Extended](https://github.com/aidenlx/media-extended) when installed (desktop); required for hosted platform URLs
 - **Builder** — command palette **Insert media gallery** with live preview
@@ -24,7 +25,23 @@ FILTER: images
 MEDIA:
 LOCAL: Media Gallery Test/Assets/ recursive | From Assets folder
 LOCAL: Media Gallery Test/Assets/sample.png | Single file (rename if needed)
+SEARCH: Media/Art/2D recursive | Picasso
 ```
+
+### Search by media title
+
+Use `SEARCH:` with a folder path and a literal title query after `|`. Matching is case-insensitive and uses the filename without its extension.
+
+```media-gallery
+OPTIONS:
+VIEW: thumbnails | 120px
+FILTER: images
+MEDIA:
+SEARCH: Media/Art/2D | Picasso
+SEARCH: Media/References recursive | blue period
+```
+
+Searches scan direct children by default. Append `recursive` or end the folder path with `/` to include subfolders. The gallery `FILTER` still controls whether images, videos, or both are included.
 
 ### VIEW options — column layout (grid, thumbnails, masonry-v)
 
@@ -96,7 +113,8 @@ Append options after `|` on the VIEW line (comma-separated):
 |------|--------|
 | Sections | `OPTIONS:` then `MEDIA:` (either order for VIEW/FILTER before media lines) |
 | VIEW / FILTER | One value each; duplicates are errors |
-| Captions | Pipe delimiter: `path \| caption` |
+| LOCAL/URL captions | Pipe delimiter: `path-or-url \| caption` |
+| Title search | `SEARCH: folder \| text`; matches filenames without extensions |
 | Comments | Lines starting with `#` are ignored |
 | List prefix | Optional leading `- ` on any line |
 | Recursive | Append `recursive` after a folder path, or end path with `/` |
@@ -116,11 +134,11 @@ Append options after `|` on the VIEW line (comma-separated):
 
 | Value | Applies to |
 |-------|------------|
-| `images` | `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp` |
+| `images` | `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp` from LOCAL and SEARCH sources |
 | `video` | `.mp4`, `.webm`, `.mov`, and hosted platform URLs |
 | `all` | Both image and video extensions |
 
-FILTER affects **LOCAL folder scans** and **URL entries** (by detected media kind). Single LOCAL files are included if their type is supported regardless of FILTER.
+FILTER affects **LOCAL folder scans**, **SEARCH sources**, and **URL entries** (by detected media kind). Single LOCAL files are included if their type is supported regardless of FILTER.
 
 ## Settings
 
@@ -160,10 +178,10 @@ The builder (**Insert media gallery**) helps compose a `media-gallery` block wit
 
 - Pick **view** and per-view layout options (columns, carousel height, masonry sizing)
 - Set **filter** (`images` / `video` / `all`) — applies to folder scans and URL entries
-- Add **local** vault paths or **remote URLs** (images, direct `.mp4` links, YouTube/Vimeo/Bilibili/Coursera)
+- Add **local** vault paths, **folder title searches**, or **remote URLs** (images, direct `.mp4` links, YouTube/Vimeo/Bilibili/Coursera)
 - Live **block preview** with copy-to-clipboard
 - Drag source cards to reorder, or use move-up/down controls
-- Quick-add shortcuts: **+ Local**, **+ URL**, **+ YouTube**
+- Quick-add shortcuts: **+ Local**, **+ Search**, **+ URL**, **+ YouTube**
 
 Hosted platform URLs require Media Extended on desktop; the builder shows a note when that plugin is not installed.
 

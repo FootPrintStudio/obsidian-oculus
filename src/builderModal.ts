@@ -1,6 +1,6 @@
 import { App, Modal, Notice, Platform, Setting } from "obsidian";
 import type { Editor } from "obsidian";
-import { formatMediaGalleryBlock } from "./parseBlock";
+import { formatMediaGalleryBlock, type FormattedMediaSource } from "./parseBlock";
 import type MediaGalleryPlugin from "./main";
 import { isMediaExtendedAvailable } from "./mediaExtended";
 import { describeUrlMediaEntry } from "./urlMedia";
@@ -19,7 +19,14 @@ interface UrlSource {
 	caption: string;
 }
 
-type BuilderSource = LocalSource | UrlSource;
+interface SearchSource {
+	kind: "search";
+	path: string;
+	query: string;
+	recursive: boolean;
+}
+
+type BuilderSource = LocalSource | SearchSource | UrlSource;
 
 const VIEW_LABELS: Record<GalleryViewType, string> = {
 	grid: "Grid",
@@ -118,6 +125,9 @@ export class GalleryBuilderModal extends Modal {
 			.createEl("button", { cls: "mg-builder-pill", text: "+ Local" })
 			.addEventListener("click", () => this.addLocalSource());
 		quickAdd
+			.createEl("button", { cls: "mg-builder-pill", text: "+ Search" })
+			.addEventListener("click", () => this.addSearchSource());
+		quickAdd
 			.createEl("button", { cls: "mg-builder-pill", text: "+ URL" })
 			.addEventListener("click", () => this.addUrlSource());
 		quickAdd
@@ -157,7 +167,7 @@ export class GalleryBuilderModal extends Modal {
 	}
 
 	private filterDescription(): string {
-		return "Applies to LOCAL folder scans and URL entries by detected media type.";
+		return "Applies to LOCAL folder scans, SEARCH sources, and URL entries by detected media type.";
 	}
 
 	private refreshLayoutSettings(): void {
@@ -269,6 +279,12 @@ export class GalleryBuilderModal extends Modal {
 		this.refreshPreview();
 	}
 
+	private addSearchSource(): void {
+		this.sources.push({ kind: "search", path: "", query: "", recursive: false });
+		this.renderSources();
+		this.refreshPreview();
+	}
+
 	private addUrlSource(initialUrl = ""): void {
 		this.sources.push({ kind: "url", url: initialUrl, caption: "" });
 		this.renderSources();
@@ -301,7 +317,7 @@ export class GalleryBuilderModal extends Modal {
 			const empty = container.createDiv({ cls: "mg-builder-empty-state" });
 			empty.createEl("h4", { text: "No sources yet" });
 			empty.createEl("p", {
-				text: "Add a vault path, remote image, direct video URL, or hosted platform link (YouTube, Vimeo, etc.).",
+				text: "Add a vault path, title search, remote image, direct video URL, or hosted platform link.",
 			});
 			return;
 		}
@@ -334,9 +350,11 @@ export class GalleryBuilderModal extends Modal {
 			});
 
 			const headerRow = card.createDiv({ cls: "mg-builder-source-card-header" });
+			const sourceLabel =
+				source.kind === "local" ? "Local" : source.kind === "search" ? "Search" : "URL";
 			headerRow.createSpan({
 				cls: "mg-builder-source-title",
-				text: source.kind === "local" ? `Local #${index + 1}` : `URL #${index + 1}`,
+				text: `${sourceLabel} #${index + 1}`,
 			});
 
 			const actions = headerRow.createDiv({ cls: "mg-builder-source-actions" });
@@ -382,6 +400,33 @@ export class GalleryBuilderModal extends Modal {
 							this.refreshPreview();
 						}),
 					);
+			} else if (source.kind === "search") {
+				new Setting(body)
+					.setName("Folder path")
+					.setDesc("Folder from vault root, e.g. Media/Art/2D")
+					.addText((text) =>
+						text.setValue(source.path).onChange((value) => {
+							source.path = value.trim();
+							this.refreshPreview();
+						}),
+					);
+				new Setting(body)
+					.setName("Title contains")
+					.setDesc("Case-insensitive text matched against filenames without extensions.")
+					.addText((text) =>
+						text.setPlaceholder("Picasso").setValue(source.query).onChange((value) => {
+							source.query = value;
+							this.refreshPreview();
+						}),
+					);
+				new Setting(body)
+					.setName("Recursive folder scan")
+					.addToggle((toggle) =>
+						toggle.setValue(source.recursive).onChange((value) => {
+							source.recursive = value;
+							this.refreshPreview();
+						}),
+					);
 			} else {
 				const urlSetting = new Setting(body)
 					.setName("Media URL")
@@ -416,22 +461,33 @@ export class GalleryBuilderModal extends Modal {
 	}
 
 	private buildBlockBody(): string {
-		const locals = this.sources
-			.filter((s): s is LocalSource => s.kind === "local" && s.path.length > 0)
-			.map((s) => ({
-				path: s.path,
-				recursive: s.recursive,
-				caption: s.caption.trim() || undefined,
-			}));
-		const urls = this.sources
-			.filter((s): s is UrlSource => s.kind === "url" && s.url.length > 0)
-			.map((s) => ({
-				url: s.url,
-				caption: s.caption.trim() || undefined,
-			}));
+		const sources: FormattedMediaSource[] = [];
+		for (const source of this.sources) {
+			if (source.kind === "local" && source.path) {
+				sources.push({
+					kind: "local",
+					path: source.path,
+					recursive: source.recursive,
+					caption: source.caption.trim() || undefined,
+				});
+			} else if (source.kind === "search" && source.path && source.query.trim()) {
+				sources.push({
+					kind: "search",
+					path: source.path,
+					query: source.query.trim(),
+					recursive: source.recursive,
+				});
+			} else if (source.kind === "url" && source.url) {
+				sources.push({
+					kind: "url",
+					url: source.url,
+					caption: source.caption.trim() || undefined,
+				});
+			}
+		}
 
-		if (locals.length === 0 && urls.length === 0) {
-			return "# Add at least one source with a path or URL.";
+		if (sources.length === 0) {
+			return "# Add at least one complete local, search, or URL source.";
 		}
 
 		return formatMediaGalleryBlock({
@@ -443,8 +499,7 @@ export class GalleryBuilderModal extends Modal {
 			carouselShowThumbnails: this.view === "carousel" ? this.carouselShowThumbnails : undefined,
 			masonryRowHeightPx: this.view === "masonry-h" ? this.parseHeightInput(this.masonryRowHeight) : undefined,
 			masonryColumnWidth: this.view === "masonry-v" ? this.masonryColumnWidth : undefined,
-			locals,
-			urls,
+			sources,
 		});
 	}
 
@@ -459,9 +514,12 @@ export class GalleryBuilderModal extends Modal {
 
 	private insertBlock(): void {
 		const locals = this.sources.filter((s) => s.kind === "local" && s.path.trim());
+		const searches = this.sources.filter(
+			(s) => s.kind === "search" && s.path.trim() && s.query.trim(),
+		);
 		const urls = this.sources.filter((s) => s.kind === "url" && s.url.trim());
-		if (locals.length === 0 && urls.length === 0) {
-			new Notice("Add at least one source with a path or URL.");
+		if (locals.length === 0 && searches.length === 0 && urls.length === 0) {
+			new Notice("Add at least one complete local, search, or URL source.");
 			return;
 		}
 

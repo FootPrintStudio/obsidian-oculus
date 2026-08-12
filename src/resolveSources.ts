@@ -1,5 +1,6 @@
 import { App, Platform, TFile, TFolder } from "obsidian";
 import { isMediaExtendedAvailable } from "./mediaExtended";
+import { mediaTitleMatchesQuery } from "./searchQuery";
 import type {
 	GalleryItem,
 	MediaFilter,
@@ -51,6 +52,7 @@ function scanFolder(
 	folderPath: string,
 	recursive: boolean,
 	filter: MediaFilter,
+	titleQuery?: string,
 ): TFile[] {
 	const folder = app.vault.getAbstractFileByPath(folderPath);
 	if (!folder || !(folder instanceof TFolder)) return [];
@@ -61,7 +63,13 @@ function scanFolder(
 		for (const child of current.children) {
 			if (child instanceof TFile) {
 				const kind = extensionKind(child.extension);
-				if (kind && filterAllows(kind, filter)) results.push(child);
+				if (
+					kind &&
+					filterAllows(kind, filter) &&
+					(!titleQuery || mediaTitleMatchesQuery(child.basename, titleQuery))
+				) {
+					results.push(child);
+				}
 			} else if (recursive && child instanceof TFolder) {
 				walk(child);
 			}
@@ -189,6 +197,34 @@ export async function resolveGalleryItems(
 			const resolved = await resolveUrlEntry(app, entry, settings, block.filter);
 			if (resolved.warning) warnings.push(resolved.warning);
 			if (resolved.item) addItem(resolved.item);
+			continue;
+		}
+
+		if (entry.kind === "search") {
+			const folder = app.vault.getAbstractFileByPath(entry.path);
+			if (!folder) {
+				warnings.push({
+					line: entry.line,
+					message: `Search folder not found: ${entry.path}`,
+				});
+				continue;
+			}
+			if (!(folder instanceof TFolder)) {
+				warnings.push({
+					line: entry.line,
+					message: `Search path is not a folder: ${entry.path}`,
+				});
+				continue;
+			}
+
+			const files = scanFolder(app, folder.path, entry.recursive, block.filter, entry.query);
+			if (files.length === 0) {
+				warnings.push({
+					line: entry.line,
+					message: `No media titles containing "${entry.query}" in folder: ${folder.path}`,
+				});
+			}
+			for (const file of files) addItem(fileToItem(app, file));
 			continue;
 		}
 

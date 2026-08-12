@@ -63,7 +63,15 @@ export interface UrlMediaEntry {
 	line: number;
 }
 
-export type MediaEntry = LocalMediaEntry | UrlMediaEntry;
+export interface SearchMediaEntry {
+	kind: "search";
+	path: string;
+	recursive: boolean;
+	query: string;
+	line: number;
+}
+
+export type MediaEntry = LocalMediaEntry | SearchMediaEntry | UrlMediaEntry;
 
 export interface ParsedGalleryBlock {
 	view: GalleryViewType;

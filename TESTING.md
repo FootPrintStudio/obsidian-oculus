@@ -37,6 +37,8 @@ Use fixtures in `Media Gallery Test/` inside the Command Centre vault. Reload Ob
 - [ ] YouTube/Vimeo `URL:` shows resolve warning when Media Extended is missing
 - [ ] CORS-blocked remote tile shows runtime warning above gallery
 - [ ] Captions appear when enabled; hidden when disabled in settings
+- [ ] `SEARCH: folder | text` matches media filenames case-insensitively
+- [ ] SEARCH respects FILTER and only includes subfolders when recursive
 - [ ] `URL:` blocked when **Allow remote media** is off (warning shown)
 - [ ] Duplicate VIEW or FILTER shows parse error panel
 - [ ] Empty MEDIA section shows error
