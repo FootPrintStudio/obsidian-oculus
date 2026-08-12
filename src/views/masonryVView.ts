@@ -20,17 +20,17 @@ export function renderMasonryV(
 	const stage = wrap.createDiv({ cls: "mg-masonry-v-stage" });
 	const columnSpec = parseColumnOption(columnWidthOption || DEFAULT_COLUMN_OPTION);
 	const aspectRatios: Array<{ w: number; h: number } | null> = items.map(() => null);
+	const tileEls: Array<HTMLElement | undefined> = new Array(items.length);
 	let scheduleRebuild = (): void => {};
 
 	const rebuild = (width: number): void => {
 		const ratios = aspectRatios.map((ratio) => ratio ?? PLACEHOLDER_ASPECT);
 		const layout = computeVerticalMasonry(ratios, width, columnSpec, MASONRY_V_GAP_PX);
 
-		stage.empty();
-
 		const columnEls: HTMLElement[] = [];
 		for (let c = 0; c < layout.columnCount; c++) {
-			const col = stage.createDiv({ cls: "mg-masonry-v-col" });
+			const col = document.createElement("div");
+			col.className = "mg-masonry-v-col";
 			col.style.width = `${layout.columnWidth}px`;
 			col.style.flexShrink = "0";
 			columnEls.push(col);
@@ -41,22 +41,27 @@ export function renderMasonryV(
 			const col = columnEls[placement.columnIndex];
 			if (!item || !col) continue;
 
-			const tile = createMediaTile(col, item, settings, onOpen, placement.itemIndex);
-			tile.addClass("mg-masonry-v-tile");
-			tile.style.height = `${placement.height}px`;
+			const idx = placement.itemIndex;
+			let tile = tileEls[idx];
+			if (!tile) {
+				tile = createMediaTile(col, item, settings, onOpen, idx, component);
+				tile.addClass("mg-masonry-v-tile");
+				tileEls[idx] = tile;
 
-			const media = tile.querySelector("img, video");
-			if (
-				(media instanceof HTMLImageElement || media instanceof HTMLVideoElement) &&
-				!aspectRatios[placement.itemIndex]
-			) {
-				const idx = placement.itemIndex;
-				attachAspectRatioListener(media, (ratio) => {
-					aspectRatios[idx] = ratio;
-					scheduleRebuild();
-				});
+				const media = tile.querySelector("img, video");
+				if (media instanceof HTMLImageElement || media instanceof HTMLVideoElement) {
+					attachAspectRatioListener(media, (ratio) => {
+						aspectRatios[idx] = ratio;
+						scheduleRebuild();
+					});
+				}
+			} else {
+				col.appendChild(tile);
 			}
+			tile.style.height = `${placement.height}px`;
 		}
+
+		stage.replaceChildren(...columnEls);
 	};
 
 	scheduleRebuild = observeGalleryLayout(wrap, component, rebuild, [container, stage]);

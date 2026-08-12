@@ -20,45 +20,52 @@ export function renderMasonryH(
 	const stage = wrap.createDiv({ cls: "mg-masonry-h-stage" });
 	const targetRowHeight = resolveMasonryRowHeightPx(rowHeightPx);
 	const aspectRatios: Array<{ w: number; h: number } | null> = items.map(() => null);
+	const tileEls: Array<HTMLElement | undefined> = new Array(items.length);
 	let scheduleRebuild = (): void => {};
 
 	const rebuild = (width: number): void => {
 		const ratios = aspectRatios.map((ratio) => ratio ?? PLACEHOLDER_ASPECT);
 		const layout = computeHorizontalMasonry(ratios, width, targetRowHeight, MASONRY_H_GAP_PX);
 		const rows = groupMasonryRows(layout.boxes);
-
-		stage.empty();
+		const rowEls: HTMLElement[] = [];
 
 		let itemIndex = 0;
 		for (const rowBoxes of rows) {
 			const rowHeight = rowBoxes[0]?.height ?? targetRowHeight;
-			const rowEl = stage.createDiv({ cls: "mg-masonry-h-row" });
+			const rowEl = document.createElement("div");
+			rowEl.className = "mg-masonry-h-row";
 			rowEl.style.height = `${rowHeight}px`;
+			rowEls.push(rowEl);
 
 			for (const box of rowBoxes) {
 				const item = items[itemIndex];
 				if (!item) break;
 
 				const idx = itemIndex;
-				const tile = createMediaTile(rowEl, item, settings, onOpen, idx);
-				tile.addClass("mg-masonry-h-tile");
+				let tile = tileEls[idx];
+				if (!tile) {
+					tile = createMediaTile(rowEl, item, settings, onOpen, idx, component);
+					tile.addClass("mg-masonry-h-tile");
+					tileEls[idx] = tile;
+
+					const media = tile.querySelector("img, video");
+					if (media instanceof HTMLImageElement || media instanceof HTMLVideoElement) {
+						attachAspectRatioListener(media, (ratio) => {
+							aspectRatios[idx] = ratio;
+							scheduleRebuild();
+						});
+					}
+				} else {
+					rowEl.appendChild(tile);
+				}
 				tile.style.width = `${box.width}px`;
 				tile.style.flexShrink = "0";
-
-				const media = tile.querySelector("img, video");
-				if (
-					(media instanceof HTMLImageElement || media instanceof HTMLVideoElement) &&
-					!aspectRatios[idx]
-				) {
-					attachAspectRatioListener(media, (ratio) => {
-						aspectRatios[idx] = ratio;
-						scheduleRebuild();
-					});
-				}
 
 				itemIndex++;
 			}
 		}
+
+		stage.replaceChildren(...rowEls);
 	};
 
 	scheduleRebuild = observeGalleryLayout(wrap, component, rebuild, [container, stage]);

@@ -9,9 +9,9 @@ export function renderGrid(
 	settings: MediaGallerySettings,
 	gridColumns: string,
 	onOpen: (index: number) => void,
-	_component: Component,
+	component: Component,
 ): void {
 	const grid = container.createDiv({ cls: "mg-view mg-view-grid" });
 	grid.style.setProperty("--mg-grid-columns", resolveGridColumns(gridColumns));
-	items.forEach((item, index) => createMediaTile(grid, item, settings, onOpen, index));
+	items.forEach((item, index) => createMediaTile(grid, item, settings, onOpen, index, component));
 }

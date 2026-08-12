@@ -44,6 +44,7 @@ export function renderGalleryView(
 ): void {
 	container.empty();
 	container.addClass("mg-gallery-root");
+	resetDeferredMediaLoader(component);
 
 	const onOpen = (index: number): void => {
 		void openGalleryItem(app, items, index, settings);
@@ -107,6 +108,74 @@ export function renderWarningPanel(container: HTMLElement, messages: string[]): 
 }
 
 const NATIVE_VIEWER_EVENTS = ["click", "mousedown", "dblclick", "pointerdown"] as const;
+const DEFERRED_MEDIA_ROOT_MARGIN = "600px";
+
+interface DeferredMediaLoader {
+	observer: IntersectionObserver;
+}
+
+const deferredMediaLoaders = new WeakMap<Component, DeferredMediaLoader>();
+
+function resetDeferredMediaLoader(component: Component): void {
+	deferredMediaLoaders.get(component)?.observer.disconnect();
+}
+
+function activateDeferredMedia(media: HTMLImageElement | HTMLVideoElement): void {
+	const src = media.dataset.src;
+	if (!src) return;
+	delete media.dataset.src;
+
+	const markLoaded = (): void => media.classList.add("mg-lazy-loaded");
+	if (media instanceof HTMLImageElement) {
+		media.addEventListener("load", markLoaded, { once: true });
+		media.src = src;
+		if (media.complete && media.naturalWidth > 0) markLoaded();
+		return;
+	}
+
+	media.addEventListener("loadedmetadata", markLoaded, { once: true });
+	media.src = src;
+	media.preload = "metadata";
+	media.load();
+}
+
+function observeDeferredMedia(
+	component: Component,
+	media: HTMLImageElement | HTMLVideoElement,
+): void {
+	media.classList.add("mg-lazy");
+
+	if (typeof IntersectionObserver === "undefined") {
+		activateDeferredMedia(media);
+		return;
+	}
+
+	let loader = deferredMediaLoaders.get(component);
+	if (!loader) {
+		const observer = new IntersectionObserver(
+			(entries) => {
+				for (const entry of entries) {
+					if (!entry.isIntersecting) continue;
+					const target = entry.target;
+					if (!(target instanceof HTMLImageElement || target instanceof HTMLVideoElement)) {
+						continue;
+					}
+					observer.unobserve(target);
+					activateDeferredMedia(target);
+				}
+			},
+			{ rootMargin: DEFERRED_MEDIA_ROOT_MARGIN },
+		);
+		loader = { observer };
+		deferredMediaLoaders.set(component, loader);
+		component.register(() => {
+			observer.disconnect();
+			deferredMediaLoaders.delete(component);
+		});
+	}
+
+	loader.observer.observe(media);
+}
 
 /** Stop Obsidian's built-in image viewer from opening on gallery tiles. */
 function suppressNativeImageViewer(tile: HTMLElement, onOpen: () => void): void {
@@ -136,24 +205,6 @@ function suppressNativeImageViewer(tile: HTMLElement, onOpen: () => void): void 
 		stop(event);
 		onOpen();
 	});
-}
-
-function attachLazyLoad(el: HTMLElement): void {
-	const media = el.querySelector("img,video");
-	if (!media) return;
-	media.classList.add("mg-lazy");
-	const observer = new IntersectionObserver(
-		(entries, obs) => {
-			for (const entry of entries) {
-				if (!entry.isIntersecting) continue;
-				entry.target.classList.add("mg-lazy-loaded");
-				obs.unobserve(entry.target);
-			}
-		},
-		{ rootMargin: "100px" },
-	);
-	observer.observe(media);
-	el.addEventListener("remove", () => observer.disconnect(), { once: true });
 }
 
 function attachRemoteLoadErrorHandler(tile: HTMLElement, item: GalleryItem): void {
@@ -187,40 +238,47 @@ function attachRemoteLoadErrorHandler(tile: HTMLElement, item: GalleryItem): voi
 	);
 }
 
-export function appendGalleryTileMedia(mediaWrap: HTMLElement, item: GalleryItem): void {
+export function appendGalleryTileMedia(
+	mediaWrap: HTMLElement,
+	item: GalleryItem,
+	component: Component,
+): void {
+	let media: HTMLImageElement | HTMLVideoElement;
 	if (item.urlVariant === "hosted") {
-		mediaWrap.createEl("img", {
+		media = mediaWrap.createEl("img", {
 			attr: {
-				src: item.src,
+				"data-src": item.src,
 				alt: item.name,
 				loading: "lazy",
+				decoding: "async",
+				fetchpriority: "low",
 				draggable: "false",
 			},
 		});
 		mediaWrap.createDiv({ cls: "mg-tile-play-badge", attr: { "aria-hidden": "true" } });
-		return;
-	}
-
-	if (item.mediaKind === "video") {
-		mediaWrap.createEl("video", {
+	} else if (item.mediaKind === "video") {
+		media = mediaWrap.createEl("video", {
 			attr: {
-				src: item.src,
-				preload: "metadata",
+				"data-src": item.src,
+				preload: "none",
 				muted: "",
 				playsinline: "",
 			},
 		});
-		return;
+	} else {
+		media = mediaWrap.createEl("img", {
+			attr: {
+				"data-src": item.src,
+				alt: item.name,
+				loading: "lazy",
+				decoding: "async",
+				fetchpriority: "low",
+				draggable: "false",
+			},
+		});
 	}
 
-	mediaWrap.createEl("img", {
-		attr: {
-			src: item.src,
-			alt: item.name,
-			loading: "lazy",
-			draggable: "false",
-		},
-	});
+	observeDeferredMedia(component, media);
 }
 
 export function createMediaTile(
@@ -229,16 +287,16 @@ export function createMediaTile(
 	settings: MediaGallerySettings,
 	onOpen: (index: number) => void,
 	index: number,
+	component: Component,
 ): HTMLElement {
 	const tile = parent.createDiv({ cls: "mg-tile" });
 	tile.dataset.mediaKind = item.mediaKind;
 	if (item.urlVariant === "hosted") tile.addClass("mg-tile-hosted");
 
 	const mediaWrap = tile.createDiv({ cls: "mg-tile-media" });
-	appendGalleryTileMedia(mediaWrap, item);
+	appendGalleryTileMedia(mediaWrap, item, component);
 
 	suppressNativeImageViewer(tile, () => onOpen(index));
-	attachLazyLoad(tile);
 	attachRemoteLoadErrorHandler(tile, item);
 
 	if (settings.showCaptions && item.caption) {

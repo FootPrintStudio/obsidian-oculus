@@ -10,7 +10,7 @@ export function renderCarousel(
 	carouselHeightPx: number | null,
 	showThumbnails: boolean,
 	onOpen: (index: number) => void,
-	_component: Component,
+	component: Component,
 ): void {
 	const wrap = container.createDiv({ cls: "mg-view mg-view-carousel" });
 	const height = resolveCarouselHeightPx(carouselHeightPx);
@@ -25,17 +25,18 @@ export function renderCarousel(
 	const nextBtn = controls.createEl("button", { text: "→", cls: "mg-carousel-btn" });
 
 	let activeIndex = 0;
+	const thumbEls: HTMLElement[] = [];
 
-	const syncThumbs = (): void => {
+	const buildThumbs = (): void => {
 		if (!thumbStrip) return;
-		thumbStrip.empty();
 		items.forEach((item, index) => {
 			const thumb = thumbStrip.createDiv({
-				cls: `mg-carousel-thumb${index === activeIndex ? " is-active" : ""}${item.urlVariant === "hosted" ? " mg-carousel-thumb-hosted" : ""}`,
+				cls: `mg-carousel-thumb${item.urlVariant === "hosted" ? " mg-carousel-thumb-hosted" : ""}`,
 				attr: { role: "button", tabindex: "0", "aria-label": item.name },
 			});
+			thumbEls.push(thumb);
 			const thumbMedia = thumb.createDiv({ cls: "mg-carousel-thumb-media" });
-			appendGalleryTileMedia(thumbMedia, item);
+			appendGalleryTileMedia(thumbMedia, item, component);
 			const select = (): void => {
 				activeIndex = index;
 				renderSlide();
@@ -53,11 +54,22 @@ export function renderCarousel(
 		});
 	};
 
+	const syncThumbs = (): void => {
+		for (let index = 0; index < thumbEls.length; index++) {
+			const thumb = thumbEls[index];
+			if (!thumb) continue;
+			const isActive = index === activeIndex;
+			thumb.classList.toggle("is-active", isActive);
+			if (isActive) thumb.setAttr("aria-current", "true");
+			else thumb.removeAttribute("aria-current");
+		}
+	};
+
 	const renderSlide = (): void => {
 		track.empty();
 		const item = items[activeIndex];
 		if (!item) return;
-		createMediaTile(track, item, settings, onOpen, activeIndex);
+		createMediaTile(track, item, settings, onOpen, activeIndex, component);
 		indicator.textContent = `${activeIndex + 1} / ${items.length}`;
 		syncThumbs();
 	};
@@ -71,5 +83,6 @@ export function renderCarousel(
 		renderSlide();
 	});
 
+	buildThumbs();
 	renderSlide();
 }

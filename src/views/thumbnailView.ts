@@ -9,9 +9,9 @@ export function renderThumbnails(
 	settings: MediaGallerySettings,
 	thumbnailColumns: string,
 	onOpen: (index: number) => void,
-	_component: Component,
+	component: Component,
 ): void {
 	const grid = container.createDiv({ cls: "mg-view mg-view-thumbnails" });
 	grid.style.setProperty("--mg-thumb-columns", resolveThumbnailColumns(thumbnailColumns));
-	items.forEach((item, index) => createMediaTile(grid, item, settings, onOpen, index));
+	items.forEach((item, index) => createMediaTile(grid, item, settings, onOpen, index, component));
 }

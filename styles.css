@@ -112,6 +112,7 @@
 }
 
 .mg-lazy {
+	aspect-ratio: auto 4 / 3;
 	opacity: 0.4;
 	transition: opacity 0.25s ease;
 }
