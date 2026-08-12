@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-media-gallery",
-	"version": "1.2.0",
+	"version": "1.2.1",
 	"description": "Local and remote media galleries for Obsidian with grid, carousel, masonry, URL video, and hosted platforms.",
 	"main": "main.js",
 	"type": "module",

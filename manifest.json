@@ -1,7 +1,7 @@
 {
 	"id": "media-gallery",
 	"name": "Media Gallery",
-	"version": "1.2.0",
+	"version": "1.2.1",
 	"minAppVersion": "1.5.0",
 	"description": "Local and remote media galleries with grid, carousel, masonry, URL video, and Media Extended integration.",
 	"author": "FootPrintStudio",
