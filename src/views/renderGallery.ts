@@ -3,6 +3,7 @@ import { isMediaExtendedAvailable, tryOpenVideoInMediaExtended } from "../mediaE
 import type { GalleryItem, MediaGallerySettings, ParsedGalleryBlock } from "../types";
 import { openLightbox } from "./lightbox";
 import { renderCarousel } from "./carouselView";
+import { observeDeferredMedia, resetDeferredMediaLoader } from "./deferredMedia";
 import { renderGrid } from "./gridView";
 import { renderMasonryH } from "./masonryHView";
 import { renderMasonryV } from "./masonryVView";
@@ -108,74 +109,6 @@ export function renderWarningPanel(container: HTMLElement, messages: string[]): 
 }
 
 const NATIVE_VIEWER_EVENTS = ["click", "mousedown", "dblclick", "pointerdown"] as const;
-const DEFERRED_MEDIA_ROOT_MARGIN = "600px";
-
-interface DeferredMediaLoader {
-	observer: IntersectionObserver;
-}
-
-const deferredMediaLoaders = new WeakMap<Component, DeferredMediaLoader>();
-
-function resetDeferredMediaLoader(component: Component): void {
-	deferredMediaLoaders.get(component)?.observer.disconnect();
-}
-
-function activateDeferredMedia(media: HTMLImageElement | HTMLVideoElement): void {
-	const src = media.dataset.src;
-	if (!src) return;
-	delete media.dataset.src;
-
-	const markLoaded = (): void => media.classList.add("mg-lazy-loaded");
-	if (media instanceof HTMLImageElement) {
-		media.addEventListener("load", markLoaded, { once: true });
-		media.src = src;
-		if (media.complete && media.naturalWidth > 0) markLoaded();
-		return;
-	}
-
-	media.addEventListener("loadedmetadata", markLoaded, { once: true });
-	media.src = src;
-	media.preload = "metadata";
-	media.load();
-}
-
-function observeDeferredMedia(
-	component: Component,
-	media: HTMLImageElement | HTMLVideoElement,
-): void {
-	media.classList.add("mg-lazy");
-
-	if (typeof IntersectionObserver === "undefined") {
-		activateDeferredMedia(media);
-		return;
-	}
-
-	let loader = deferredMediaLoaders.get(component);
-	if (!loader) {
-		const observer = new IntersectionObserver(
-			(entries) => {
-				for (const entry of entries) {
-					if (!entry.isIntersecting) continue;
-					const target = entry.target;
-					if (!(target instanceof HTMLImageElement || target instanceof HTMLVideoElement)) {
-						continue;
-					}
-					observer.unobserve(target);
-					activateDeferredMedia(target);
-				}
-			},
-			{ rootMargin: DEFERRED_MEDIA_ROOT_MARGIN },
-		);
-		loader = { observer };
-		deferredMediaLoaders.set(component, loader);
-		component.register(() => {
-			observer.disconnect();
-			deferredMediaLoaders.delete(component);
-		});
-	}
-
-	loader.observer.observe(media);
-}
 
 /** Stop Obsidian's built-in image viewer from opening on gallery tiles. */
 function suppressNativeImageViewer(tile: HTMLElement, onOpen: () => void): void {
