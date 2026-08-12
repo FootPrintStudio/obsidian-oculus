@@ -147,6 +147,11 @@ export class GalleryBuilderModal extends Modal {
 			text: "Copy",
 		});
 		copyBtn.addEventListener("click", () => {
+			const validationError = this.getSearchValidationError();
+			if (validationError) {
+				new Notice(validationError);
+				return;
+			}
 			const text = this.buildBlockText();
 			void navigator.clipboard.writeText(text);
 			new Notice("Media gallery block copied to clipboard.");
@@ -461,7 +466,23 @@ export class GalleryBuilderModal extends Modal {
 		return match?.[1] ? Number.parseInt(match[1], 10) : null;
 	}
 
+	private getSearchValidationError(): string | null {
+		for (const source of this.sources) {
+			if (source.kind !== "search") continue;
+			if (!source.path.trim() || !source.query.trim()) {
+				return "Complete or remove every Search source.";
+			}
+			if (!parseMediaTitleQueries(source.query)) {
+				return "Remove empty comma-separated values from every Search source.";
+			}
+		}
+		return null;
+	}
+
 	private buildBlockBody(): string {
+		const validationError = this.getSearchValidationError();
+		if (validationError) return `# ${validationError}`;
+
 		const sources: FormattedMediaSource[] = [];
 		for (const source of this.sources) {
 			if (source.kind === "local" && source.path) {
@@ -516,13 +537,9 @@ export class GalleryBuilderModal extends Modal {
 	}
 
 	private insertBlock(): void {
-		const incompleteSearch = this.sources.some(
-			(source) =>
-				source.kind === "search" &&
-				(!source.path.trim() || !parseMediaTitleQueries(source.query)),
-		);
-		if (incompleteSearch) {
-			new Notice("Complete or remove every Search source before inserting the gallery.");
+		const validationError = this.getSearchValidationError();
+		if (validationError) {
+			new Notice(validationError);
 			return;
 		}
 

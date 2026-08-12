@@ -43,6 +43,8 @@ SEARCH: Media/References recursive | blue period, sketch
 
 Searches scan direct children by default. Append `recursive` or end the folder path with `/` to include subfolders. Empty comma-separated queries are rejected. The gallery `FILTER` still controls whether images, videos, or both are included.
 
+Commas are reserved as query separators and cannot be searched literally. Existing single-query searches continue to work unchanged; an older query containing commas is now interpreted as multiple required terms.
+
 ### VIEW options — column layout (grid, thumbnails, masonry-v)
 
 `grid`, `thumbnails`, and `masonry-v` share one column-option syntax. Append the same kind of value after `|` on the VIEW line:

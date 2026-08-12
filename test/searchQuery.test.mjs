@@ -84,6 +84,9 @@ test("formats search sources without changing LOCAL caption syntax", () => {
 		block,
 		/SEARCH: Media\/Art\/2D recursive \| Renaissance, Sculpture/,
 	);
+	const reparsed = parseMediaGalleryBlock(block);
+	assert.deepEqual(reparsed.errors, []);
+	assert.deepEqual(reparsed.entries[1]?.queries, ["Renaissance", "Sculpture"]);
 });
 
 test("preserves builder source order across source types", () => {
@@ -101,6 +104,26 @@ test("preserves builder source order across source types", () => {
 	const searchIndex = block.indexOf("SEARCH:");
 	const localIndex = block.indexOf("LOCAL:");
 	assert.equal(urlIndex < searchIndex && searchIndex < localIndex, true);
+});
+
+test("formatter rejects empty search query arrays and segments", () => {
+	const base = { view: "grid", filter: "images" };
+	assert.throws(
+		() =>
+			formatMediaGalleryBlock({
+				...base,
+				sources: [{ kind: "search", path: "Media/Art", queries: [] }],
+			}),
+		/one or more non-empty queries/,
+	);
+	assert.throws(
+		() =>
+			formatMediaGalleryBlock({
+				...base,
+				sources: [{ kind: "search", path: "Media/Art", queries: ["Picasso", ""] }],
+			}),
+		/one or more non-empty queries/,
+	);
 });
 
 test("matches normalized title substrings case-insensitively", () => {

@@ -498,7 +498,11 @@ export function formatMediaGalleryBlock(
 		} else if (source.kind === "search") {
 			let path = source.path;
 			if (source.recursive) path = `${path.replace(/\/$/, "")} recursive`;
-			lines.push(`SEARCH: ${path} | ${source.queries.join(", ")}`);
+			const queries = source.queries.map((query) => query.trim());
+			if (queries.length === 0 || queries.some((query) => !query)) {
+				throw new Error("SEARCH sources require one or more non-empty queries.");
+			}
+			lines.push(`SEARCH: ${path} | ${queries.join(", ")}`);
 		} else {
 			const caption = source.caption ? ` | ${source.caption}` : "";
 			lines.push(`URL: ${source.url}${caption}`);
