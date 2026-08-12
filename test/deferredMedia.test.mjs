@@ -14,7 +14,8 @@ class FakeClassList {
 }
 
 class FakeMedia {
-	constructor() {
+	constructor(tagName) {
+		this.tagName = tagName;
 		this.classList = new FakeClassList();
 		this.dataset = {};
 		this.listeners = new Map();
@@ -32,17 +33,21 @@ class FakeMedia {
 
 class FakeImage extends FakeMedia {
 	constructor() {
-		super();
+		super("IMG");
 		this.complete = false;
 		this.naturalWidth = 0;
+		this.naturalHeight = 0;
 	}
 }
 
 class FakeVideo extends FakeMedia {
 	constructor() {
-		super();
+		super("VIDEO");
 		this.loadCalls = 0;
 		this.preload = "none";
+		this.readyState = 0;
+		this.videoWidth = 0;
+		this.videoHeight = 0;
 	}
 
 	load() {
@@ -86,6 +91,7 @@ globalThis.IntersectionObserver = FakeIntersectionObserver;
 const { observeDeferredMedia, resetDeferredMediaLoader } = await import(
 	"../.test-build/deferredMedia.mjs"
 );
+const { attachAspectRatioListener } = await import("../.test-build/mediaAspect.mjs");
 
 function createComponent() {
 	return {
@@ -142,6 +148,38 @@ test("does not request video metadata until the tile approaches the viewport", (
 
 	video.dispatch("loadedmetadata");
 	assert.equal(video.classList.contains("mg-lazy-loaded"), true);
+});
+
+test("loads media created by a different window realm", () => {
+	const component = createComponent();
+	const foreignImage = new FakeMedia("IMG");
+	foreignImage.complete = false;
+	foreignImage.naturalWidth = 0;
+	foreignImage.dataset.src = "app://vault/popout.jpg";
+
+	assert.equal(foreignImage instanceof HTMLImageElement, false);
+	observeDeferredMedia(component, foreignImage);
+	const observer = FakeIntersectionObserver.instances.at(-1);
+	observer.trigger(foreignImage, true);
+
+	assert.equal(foreignImage.src, "app://vault/popout.jpg");
+});
+
+test("waits for deferred image dimensions even when an empty src reports complete", () => {
+	const image = new FakeImage();
+	image.complete = true;
+	let ratio = null;
+
+	attachAspectRatioListener(image, (nextRatio) => {
+		ratio = nextRatio;
+	});
+	assert.equal(ratio, null);
+	assert.equal(image.listeners.has("load"), true);
+
+	image.naturalWidth = 1600;
+	image.naturalHeight = 900;
+	image.dispatch("load");
+	assert.deepEqual(ratio, { w: 1600, h: 900 });
 });
 
 test("disconnects stale observations on rerender and unload", () => {

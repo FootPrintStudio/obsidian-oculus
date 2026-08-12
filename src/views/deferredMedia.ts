@@ -8,13 +8,24 @@ interface DeferredMediaLoader {
 
 const deferredMediaLoaders = new WeakMap<Component, DeferredMediaLoader>();
 
+function isImageElement(target: EventTarget): target is HTMLImageElement {
+	return (target as Element).tagName === "IMG";
+}
+
+function isMediaElement(
+	target: EventTarget,
+): target is HTMLImageElement | HTMLVideoElement {
+	const tagName = (target as Element).tagName;
+	return tagName === "IMG" || tagName === "VIDEO";
+}
+
 function activateDeferredMedia(media: HTMLImageElement | HTMLVideoElement): void {
 	const src = media.dataset.src;
 	if (!src) return;
 	delete media.dataset.src;
 
 	const markLoaded = (): void => media.classList.add("mg-lazy-loaded");
-	if (media instanceof HTMLImageElement) {
+	if (isImageElement(media)) {
 		media.addEventListener("load", markLoaded, { once: true });
 		media.src = src;
 		if (media.complete && media.naturalWidth > 0) markLoaded();
@@ -49,9 +60,7 @@ export function observeDeferredMedia(
 				for (const entry of entries) {
 					if (!entry.isIntersecting) continue;
 					const target = entry.target;
-					if (!(target instanceof HTMLImageElement || target instanceof HTMLVideoElement)) {
-						continue;
-					}
+					if (!isMediaElement(target)) continue;
 					observer.unobserve(target);
 					activateDeferredMedia(target);
 				}
@@ -67,4 +76,11 @@ export function observeDeferredMedia(
 	}
 
 	loader.observer.observe(media);
+}
+
+export function unobserveDeferredMedia(
+	component: Component,
+	media: HTMLImageElement | HTMLVideoElement,
+): void {
+	deferredMediaLoaders.get(component)?.observer.unobserve(media);
 }

@@ -32,7 +32,7 @@ export function renderMasonryH(
 		let itemIndex = 0;
 		for (const rowBoxes of rows) {
 			const rowHeight = rowBoxes[0]?.height ?? targetRowHeight;
-			const rowEl = document.createElement("div");
+			const rowEl = stage.ownerDocument.createElement("div");
 			rowEl.className = "mg-masonry-h-row";
 			rowEl.style.height = `${rowHeight}px`;
 			rowEls.push(rowEl);
@@ -48,8 +48,8 @@ export function renderMasonryH(
 					tile.addClass("mg-masonry-h-tile");
 					tileEls[idx] = tile;
 
-					const media = tile.querySelector("img, video");
-					if (media instanceof HTMLImageElement || media instanceof HTMLVideoElement) {
+					const media = tile.querySelector<HTMLImageElement | HTMLVideoElement>("img, video");
+					if (media) {
 						attachAspectRatioListener(media, (ratio) => {
 							aspectRatios[idx] = ratio;
 							scheduleRebuild();

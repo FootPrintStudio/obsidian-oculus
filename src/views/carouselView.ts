@@ -2,6 +2,7 @@ import type { Component } from "obsidian";
 import { resolveCarouselHeightPx } from "../parseBlock";
 import type { GalleryItem, MediaGallerySettings } from "../types";
 import { createMediaTile, appendGalleryTileMedia } from "./renderGallery";
+import { unobserveDeferredMedia } from "./deferredMedia";
 
 export function renderCarousel(
 	container: HTMLElement,
@@ -66,6 +67,8 @@ export function renderCarousel(
 	};
 
 	const renderSlide = (): void => {
+		const previousMedia = track.querySelector<HTMLImageElement | HTMLVideoElement>("img, video");
+		if (previousMedia) unobserveDeferredMedia(component, previousMedia);
 		track.empty();
 		const item = items[activeIndex];
 		if (!item) return;

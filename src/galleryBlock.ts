@@ -2,6 +2,7 @@ import { MarkdownPostProcessorContext, MarkdownRenderChild } from "obsidian";
 import type MediaGalleryPlugin from "./main";
 import { parseMediaGalleryBlock } from "./parseBlock";
 import { resolveGalleryItems } from "./resolveSources";
+import { resetDeferredMediaLoader } from "./views/deferredMedia";
 import { renderErrorPanel, renderGalleryView, renderWarningPanel } from "./views/renderGallery";
 
 export class GalleryBlock extends MarkdownRenderChild {
@@ -20,6 +21,7 @@ export class GalleryBlock extends MarkdownRenderChild {
 
 	async render(): Promise<void> {
 		const el = this.containerEl;
+		resetDeferredMediaLoader(this);
 		el.empty();
 		el.addClass("mg-block");
 

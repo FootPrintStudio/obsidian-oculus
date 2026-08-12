@@ -29,7 +29,7 @@ export function renderMasonryV(
 
 		const columnEls: HTMLElement[] = [];
 		for (let c = 0; c < layout.columnCount; c++) {
-			const col = document.createElement("div");
+			const col = stage.ownerDocument.createElement("div");
 			col.className = "mg-masonry-v-col";
 			col.style.width = `${layout.columnWidth}px`;
 			col.style.flexShrink = "0";
@@ -48,8 +48,8 @@ export function renderMasonryV(
 				tile.addClass("mg-masonry-v-tile");
 				tileEls[idx] = tile;
 
-				const media = tile.querySelector("img, video");
-				if (media instanceof HTMLImageElement || media instanceof HTMLVideoElement) {
+				const media = tile.querySelector<HTMLImageElement | HTMLVideoElement>("img, video");
+				if (media) {
 					attachAspectRatioListener(media, (ratio) => {
 						aspectRatios[idx] = ratio;
 						scheduleRebuild();

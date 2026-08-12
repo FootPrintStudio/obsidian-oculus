@@ -5,9 +5,10 @@ export { PLACEHOLDER_ASPECT };
 export function readMediaAspectRatio(
 	media: HTMLImageElement | HTMLVideoElement,
 ): { w: number; h: number } | null {
-	if (media instanceof HTMLImageElement) {
-		if (media.naturalWidth > 0 && media.naturalHeight > 0) {
-			return { w: media.naturalWidth, h: media.naturalHeight };
+	if (media.tagName === "IMG") {
+		const image = media as HTMLImageElement;
+		if (image.naturalWidth > 0 && image.naturalHeight > 0) {
+			return { w: image.naturalWidth, h: image.naturalHeight };
 		}
 		return null;
 	}
@@ -26,8 +27,8 @@ export function attachAspectRatioListener(
 		if (ratio) onRatio(ratio);
 	};
 
-	if (media instanceof HTMLImageElement) {
-		if (media.complete) emit();
+	if (media.tagName === "IMG") {
+		if (readMediaAspectRatio(media)) emit();
 		else media.addEventListener("load", emit, { once: true });
 		return;
 	}

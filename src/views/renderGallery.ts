@@ -3,7 +3,7 @@ import { isMediaExtendedAvailable, tryOpenVideoInMediaExtended } from "../mediaE
 import type { GalleryItem, MediaGallerySettings, ParsedGalleryBlock } from "../types";
 import { openLightbox } from "./lightbox";
 import { renderCarousel } from "./carouselView";
-import { observeDeferredMedia, resetDeferredMediaLoader } from "./deferredMedia";
+import { observeDeferredMedia } from "./deferredMedia";
 import { renderGrid } from "./gridView";
 import { renderMasonryH } from "./masonryHView";
 import { renderMasonryV } from "./masonryVView";
@@ -45,7 +45,6 @@ export function renderGalleryView(
 ): void {
 	container.empty();
 	container.addClass("mg-gallery-root");
-	resetDeferredMediaLoader(component);
 
 	const onOpen = (index: number): void => {
 		void openGalleryItem(app, items, index, settings);
