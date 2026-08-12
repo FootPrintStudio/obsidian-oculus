@@ -7,7 +7,7 @@
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
-		"test": "esbuild src/views/deferredMedia.ts src/views/mediaAspect.ts --bundle --platform=node --format=esm --outdir=.test-build && node --test test/deferredMedia.test.mjs"
+		"test": "esbuild src/views/deferredMedia.ts src/views/mediaAspect.ts --bundle --platform=node --format=esm --out-extension:.js=.mjs --outdir=.test-build && node --test test/deferredMedia.test.mjs"
 	},
 	"keywords": ["obsidian", "plugin", "gallery", "media"],
 	"license": "MIT",

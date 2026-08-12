@@ -12,8 +12,9 @@ export function readMediaAspectRatio(
 		}
 		return null;
 	}
-	if (media.videoWidth > 0 && media.videoHeight > 0) {
-		return { w: media.videoWidth, h: media.videoHeight };
+	const video = media as HTMLVideoElement;
+	if (video.videoWidth > 0 && video.videoHeight > 0) {
+		return { w: video.videoWidth, h: video.videoHeight };
 	}
 	return null;
 }
@@ -33,6 +34,7 @@ export function attachAspectRatioListener(
 		return;
 	}
 
-	if (media.readyState >= 1) emit();
-	else media.addEventListener("loadedmetadata", emit, { once: true });
+	const video = media as HTMLVideoElement;
+	if (video.readyState >= 1) emit();
+	else video.addEventListener("loadedmetadata", emit, { once: true });
 }
