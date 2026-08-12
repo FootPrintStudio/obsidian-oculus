@@ -134,8 +134,8 @@ Append options after `|` on the VIEW line (comma-separated):
 
 | Value | Applies to |
 |-------|------------|
-| `images` | `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp` from LOCAL and SEARCH sources |
-| `video` | `.mp4`, `.webm`, `.mov`, and hosted platform URLs |
+| `images` | `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp` from LOCAL, SEARCH, and URL sources |
+| `video` | `.mp4`, `.webm`, `.mov` from LOCAL, SEARCH, and URL sources, plus hosted platforms |
 | `all` | Both image and video extensions |
 
 FILTER affects **LOCAL folder scans**, **SEARCH sources**, and **URL entries** (by detected media kind). Single LOCAL files are included if their type is supported regardless of FILTER.
@@ -177,7 +177,7 @@ Open **Settings → Community plugins → Media Gallery** (Settings | README tab
 The builder (**Insert media gallery**) helps compose a `media-gallery` block without memorizing syntax:
 
 - Pick **view** and per-view layout options (columns, carousel height, masonry sizing)
-- Set **filter** (`images` / `video` / `all`) — applies to folder scans and URL entries
+- Set **filter** (`images` / `video` / `all`) — applies to LOCAL folder scans, SEARCH sources, and URL entries
 - Add **local** vault paths, **folder title searches**, or **remote URLs** (images, direct `.mp4` links, YouTube/Vimeo/Bilibili/Coursera)
 - Live **block preview** with copy-to-clipboard
 - Drag source cards to reorder, or use move-up/down controls

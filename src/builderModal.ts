@@ -513,6 +513,15 @@ export class GalleryBuilderModal extends Modal {
 	}
 
 	private insertBlock(): void {
+		const incompleteSearch = this.sources.some(
+			(source) =>
+				source.kind === "search" && (!source.path.trim() || !source.query.trim()),
+		);
+		if (incompleteSearch) {
+			new Notice("Complete or remove every Search source before inserting the gallery.");
+			return;
+		}
+
 		const locals = this.sources.filter((s) => s.kind === "local" && s.path.trim());
 		const searches = this.sources.filter(
 			(s) => s.kind === "search" && s.path.trim() && s.query.trim(),

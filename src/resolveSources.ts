@@ -221,7 +221,7 @@ export async function resolveGalleryItems(
 			if (files.length === 0) {
 				warnings.push({
 					line: entry.line,
-					message: `No media titles containing "${entry.query}" in folder: ${folder.path}`,
+					message: `No matching media for title query "${entry.query}" in folder: ${folder.path} (filter: ${block.filter})`,
 				});
 			}
 			for (const file of files) addItem(fileToItem(app, file));

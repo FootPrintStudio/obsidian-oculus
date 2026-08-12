@@ -437,7 +437,7 @@ export type FormattedMediaSource =
 	| { kind: "search"; path: string; recursive?: boolean; query: string }
 	| { kind: "url"; url: string; caption?: string };
 
-export function formatMediaGalleryBlock(options: {
+interface FormatMediaGalleryBase {
 	view: GalleryViewType;
 	filter: MediaFilter;
 	gridColumns?: string;
@@ -446,11 +446,25 @@ export function formatMediaGalleryBlock(options: {
 	carouselShowThumbnails?: boolean;
 	masonryRowHeightPx?: number | null;
 	masonryColumnWidth?: string;
-	sources?: FormattedMediaSource[];
-	locals?: Array<{ path: string; recursive?: boolean; caption?: string }>;
-	searches?: Array<{ path: string; recursive?: boolean; query: string }>;
-	urls?: Array<{ url: string; caption?: string }>;
-}): string {
+}
+
+type FormatMediaGallerySources =
+	| {
+			sources: FormattedMediaSource[];
+			locals?: never;
+			searches?: never;
+			urls?: never;
+	  }
+	| {
+			sources?: never;
+			locals: Array<{ path: string; recursive?: boolean; caption?: string }>;
+			searches?: Array<{ path: string; recursive?: boolean; query: string }>;
+			urls: Array<{ url: string; caption?: string }>;
+	  };
+
+export function formatMediaGalleryBlock(
+	options: FormatMediaGalleryBase & FormatMediaGallerySources,
+): string {
 	const lines: string[] = [
 		"OPTIONS:",
 		formatViewLine(options),
