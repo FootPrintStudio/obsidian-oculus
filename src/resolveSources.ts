@@ -1,6 +1,6 @@
 import { App, Platform, TFile, TFolder } from "obsidian";
 import { isMediaExtendedAvailable } from "./mediaExtended";
-import { mediaTitleMatchesQuery } from "./searchQuery";
+import { mediaTitleMatchesQueries } from "./searchQuery";
 import type {
 	GalleryItem,
 	MediaFilter,
@@ -52,7 +52,7 @@ function scanFolder(
 	folderPath: string,
 	recursive: boolean,
 	filter: MediaFilter,
-	titleQuery?: string,
+	titleQueries?: string[],
 ): TFile[] {
 	const folder = app.vault.getAbstractFileByPath(folderPath);
 	if (!folder || !(folder instanceof TFolder)) return [];
@@ -66,7 +66,7 @@ function scanFolder(
 				if (
 					kind &&
 					filterAllows(kind, filter) &&
-					(!titleQuery || mediaTitleMatchesQuery(child.basename, titleQuery))
+					(!titleQueries || mediaTitleMatchesQueries(child.basename, titleQueries))
 				) {
 					results.push(child);
 				}
@@ -217,11 +217,11 @@ export async function resolveGalleryItems(
 				continue;
 			}
 
-			const files = scanFolder(app, folder.path, entry.recursive, block.filter, entry.query);
+			const files = scanFolder(app, folder.path, entry.recursive, block.filter, entry.queries);
 			if (files.length === 0) {
 				warnings.push({
 					line: entry.line,
-					message: `No matching media for title query "${entry.query}" in folder: ${folder.path} (filter: ${block.filter})`,
+					message: `No matching media for title queries "${entry.queries.join(", ")}" in folder: ${folder.path} (filter: ${block.filter})`,
 				});
 			}
 			for (const file of files) addItem(fileToItem(app, file));

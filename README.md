@@ -25,23 +25,23 @@ FILTER: images
 MEDIA:
 LOCAL: Media Gallery Test/Assets/ recursive | From Assets folder
 LOCAL: Media Gallery Test/Assets/sample.png | Single file (rename if needed)
-SEARCH: Media/Art/2D recursive | Picasso
+SEARCH: Media/Art/2D recursive | Renaissance, Sculpture
 ```
 
 ### Search by media title
 
-Use `SEARCH:` with a folder path and a literal title query after `|`. Matching is case-insensitive and uses the filename without its extension.
+Use `SEARCH:` with a folder path and one or more literal title queries after `|`. Separate queries with commas. Matching is case-insensitive, uses the filename without its extension, and requires every query to match.
 
 ```media-gallery
 OPTIONS:
 VIEW: thumbnails | 120px
 FILTER: images
 MEDIA:
-SEARCH: Media/Art/2D | Picasso
-SEARCH: Media/References recursive | blue period
+SEARCH: Media/Art/2D | Renaissance, Sculpture
+SEARCH: Media/References recursive | blue period, sketch
 ```
 
-Searches scan direct children by default. Append `recursive` or end the folder path with `/` to include subfolders. The gallery `FILTER` still controls whether images, videos, or both are included.
+Searches scan direct children by default. Append `recursive` or end the folder path with `/` to include subfolders. Empty comma-separated queries are rejected. The gallery `FILTER` still controls whether images, videos, or both are included.
 
 ### VIEW options — column layout (grid, thumbnails, masonry-v)
 
@@ -114,7 +114,7 @@ Append options after `|` on the VIEW line (comma-separated):
 | Sections | `OPTIONS:` then `MEDIA:` (either order for VIEW/FILTER before media lines) |
 | VIEW / FILTER | One value each; duplicates are errors |
 | LOCAL/URL captions | Pipe delimiter: `path-or-url \| caption` |
-| Title search | `SEARCH: folder \| text`; matches filenames without extensions |
+| Title search | `SEARCH: folder \| text, text`; every comma-separated query must match |
 | Comments | Lines starting with `#` are ignored |
 | List prefix | Optional leading `- ` on any line |
 | Recursive | Append `recursive` after a folder path, or end path with `/` |

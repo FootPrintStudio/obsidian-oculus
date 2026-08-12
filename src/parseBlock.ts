@@ -1,4 +1,5 @@
 import { DEFAULT_COLUMN_OPTION } from "./layout/columnOptions";
+import { parseMediaTitleQueries } from "./searchQuery";
 import {
 	type GalleryViewType,
 	type LocalMediaEntry,
@@ -228,13 +229,21 @@ function parseSearchLine(rest: string, line: number, errors: ParseError[]): Sear
 	}
 
 	const main = rest.slice(0, pipeIndex).trim();
-	const query = rest.slice(pipeIndex + 1).trim();
+	const queryText = rest.slice(pipeIndex + 1).trim();
 	if (!main) {
 		errors.push({ line, message: "SEARCH entry is missing a folder path." });
 		return null;
 	}
-	if (!query) {
+	if (!queryText) {
 		errors.push({ line, message: "SEARCH entry is missing a title query." });
+		return null;
+	}
+	const queries = parseMediaTitleQueries(queryText);
+	if (!queries) {
+		errors.push({
+			line,
+			message: "SEARCH queries must be comma-separated, non-empty text values.",
+		});
 		return null;
 	}
 
@@ -244,7 +253,7 @@ function parseSearchLine(rest: string, line: number, errors: ParseError[]): Sear
 		return null;
 	}
 
-	return { kind: "search", path, recursive, query, line };
+	return { kind: "search", path, recursive, queries, line };
 }
 
 function parseUrlLine(rest: string, line: number, errors: ParseError[]): MediaEntry | null {
@@ -434,7 +443,7 @@ function formatViewLine(options: {
 
 export type FormattedMediaSource =
 	| { kind: "local"; path: string; recursive?: boolean; caption?: string }
-	| { kind: "search"; path: string; recursive?: boolean; query: string }
+	| { kind: "search"; path: string; recursive?: boolean; queries: string[] }
 	| { kind: "url"; url: string; caption?: string };
 
 interface FormatMediaGalleryBase {
@@ -458,7 +467,7 @@ type FormatMediaGallerySources =
 	| {
 			sources?: never;
 			locals: Array<{ path: string; recursive?: boolean; caption?: string }>;
-			searches?: Array<{ path: string; recursive?: boolean; query: string }>;
+			searches?: Array<{ path: string; recursive?: boolean; queries: string[] }>;
 			urls: Array<{ url: string; caption?: string }>;
 	  };
 
@@ -489,7 +498,7 @@ export function formatMediaGalleryBlock(
 		} else if (source.kind === "search") {
 			let path = source.path;
 			if (source.recursive) path = `${path.replace(/\/$/, "")} recursive`;
-			lines.push(`SEARCH: ${path} | ${source.query}`);
+			lines.push(`SEARCH: ${path} | ${source.queries.join(", ")}`);
 		} else {
 			const caption = source.caption ? ` | ${source.caption}` : "";
 			lines.push(`URL: ${source.url}${caption}`);

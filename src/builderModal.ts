@@ -3,6 +3,7 @@ import type { Editor } from "obsidian";
 import { formatMediaGalleryBlock, type FormattedMediaSource } from "./parseBlock";
 import type MediaGalleryPlugin from "./main";
 import { isMediaExtendedAvailable } from "./mediaExtended";
+import { parseMediaTitleQueries } from "./searchQuery";
 import { describeUrlMediaEntry } from "./urlMedia";
 import { MEDIA_FILTERS, VIEW_TYPES, type GalleryViewType, type MediaFilter } from "./types";
 
@@ -411,10 +412,10 @@ export class GalleryBuilderModal extends Modal {
 						}),
 					);
 				new Setting(body)
-					.setName("Title contains")
-					.setDesc("Case-insensitive text matched against filenames without extensions.")
+					.setName("Title contains all")
+					.setDesc("Comma-separated, case-insensitive text. Every query must match the filename.")
 					.addText((text) =>
-						text.setPlaceholder("Picasso").setValue(source.query).onChange((value) => {
+						text.setPlaceholder("Renaissance, Sculpture").setValue(source.query).onChange((value) => {
 							source.query = value;
 							this.refreshPreview();
 						}),
@@ -470,11 +471,13 @@ export class GalleryBuilderModal extends Modal {
 					recursive: source.recursive,
 					caption: source.caption.trim() || undefined,
 				});
-			} else if (source.kind === "search" && source.path && source.query.trim()) {
+			} else if (source.kind === "search" && source.path) {
+				const queries = parseMediaTitleQueries(source.query);
+				if (!queries) continue;
 				sources.push({
 					kind: "search",
 					path: source.path,
-					query: source.query.trim(),
+					queries,
 					recursive: source.recursive,
 				});
 			} else if (source.kind === "url" && source.url) {
@@ -515,7 +518,8 @@ export class GalleryBuilderModal extends Modal {
 	private insertBlock(): void {
 		const incompleteSearch = this.sources.some(
 			(source) =>
-				source.kind === "search" && (!source.path.trim() || !source.query.trim()),
+				source.kind === "search" &&
+				(!source.path.trim() || !parseMediaTitleQueries(source.query)),
 		);
 		if (incompleteSearch) {
 			new Notice("Complete or remove every Search source before inserting the gallery.");
@@ -524,7 +528,8 @@ export class GalleryBuilderModal extends Modal {
 
 		const locals = this.sources.filter((s) => s.kind === "local" && s.path.trim());
 		const searches = this.sources.filter(
-			(s) => s.kind === "search" && s.path.trim() && s.query.trim(),
+			(s) =>
+				s.kind === "search" && s.path.trim() && parseMediaTitleQueries(s.query),
 		);
 		const urls = this.sources.filter((s) => s.kind === "url" && s.url.trim());
 		if (locals.length === 0 && searches.length === 0 && urls.length === 0) {

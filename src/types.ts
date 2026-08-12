@@ -67,7 +67,7 @@ export interface SearchMediaEntry {
 	kind: "search";
 	path: string;
 	recursive: boolean;
-	query: string;
+	queries: string[];
 	line: number;
 }
 

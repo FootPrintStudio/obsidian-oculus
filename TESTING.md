@@ -38,6 +38,7 @@ Use fixtures in `Media Gallery Test/` inside the Command Centre vault. Reload Ob
 - [ ] CORS-blocked remote tile shows runtime warning above gallery
 - [ ] Captions appear when enabled; hidden when disabled in settings
 - [ ] `SEARCH: folder | text` matches media filenames case-insensitively
+- [ ] Comma-separated SEARCH queries require every query to match the filename
 - [ ] SEARCH respects FILTER and only includes subfolders when recursive
 - [ ] `URL:` blocked when **Allow remote media** is off (warning shown)
 - [ ] Duplicate VIEW or FILTER shows parse error panel
