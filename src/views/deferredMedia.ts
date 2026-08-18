@@ -60,30 +60,32 @@ export function observeDeferredMedia(
 
 	let loader = deferredMediaLoaders.get(component);
 	if (!loader) {
-		loader = { observers: new Map() };
-		deferredMediaLoaders.set(component, loader);
+		const createdLoader: DeferredMediaLoader = { observers: new Map() };
+		loader = createdLoader;
+		deferredMediaLoaders.set(component, createdLoader);
 		component.register(() => {
-			for (const observer of loader.observers.values()) observer.disconnect();
-			loader.observers.clear();
+			for (const observer of createdLoader.observers.values()) observer.disconnect();
+			createdLoader.observers.clear();
 			deferredMediaLoaders.delete(component);
 		});
 	}
 
 	let observer = loader.observers.get(document);
 	if (!observer) {
-		observer = new Observer(
+		const createdObserver = new Observer(
 			(entries) => {
 				for (const entry of entries) {
 					if (!entry.isIntersecting) continue;
 					const target = entry.target;
 					if (!isMediaElement(target)) continue;
-					observer.unobserve(target);
+					createdObserver.unobserve(target);
 					activateDeferredMedia(target);
 				}
 			},
 			{ rootMargin: DEFERRED_MEDIA_ROOT_MARGIN },
 		);
-		loader.observers.set(document, observer);
+		observer = createdObserver;
+		loader.observers.set(document, createdObserver);
 	}
 
 	observer.observe(media);
