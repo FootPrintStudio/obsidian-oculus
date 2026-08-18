@@ -1,10 +1,1 @@
-{
-	"id": "media-gallery",
-	"name": "Media Gallery",
-	"version": "1.2.0",
-	"minAppVersion": "1.5.0",
-	"description": "Local and remote media galleries with grid, carousel, masonry, URL video, and Media Extended integration.",
-	"author": "FootPrintStudio",
-	"authorUrl": "https://github.com/FootPrintStudio",
-	"isDesktopOnly": false
-}
+{"id":"media-gallery","name":"Oculus","version":"1.5.0","minAppVersion":"1.5.0","description":"Oculus — local and remote media galleries with grid, carousel, masonry, a note-image lightbox, and Media Extended integration.","author":"FootPrintStudio","authorUrl":"https://github.com/FootPrintStudio","isDesktopOnly":false}

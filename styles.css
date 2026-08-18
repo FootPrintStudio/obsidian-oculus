@@ -112,6 +112,7 @@
 }
 
 .mg-lazy {
+	aspect-ratio: auto 4 / 3;
 	opacity: 0.4;
 	transition: opacity 0.25s ease;
 }
@@ -821,4 +822,11 @@
 .mg-builder-insert-btn {
 	background: var(--interactive-accent);
 	color: var(--text-on-accent);
+}
+
+/* Note images that open the Oculus lightbox */
+.markdown-preview-view img:not(.mg-native-suppressed):not(.mg-lazy),
+.markdown-source-view img:not(.mg-native-suppressed):not(.mg-lazy),
+.markdown-rendered img:not(.mg-native-suppressed):not(.mg-lazy) {
+	cursor: zoom-in;
 }

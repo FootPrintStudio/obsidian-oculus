@@ -18,6 +18,8 @@ export interface MediaGallerySettings {
 	defaultView: GalleryViewType;
 	/** When Media Extended is installed, open local/direct URL videos in its player. Hosted URLs always use ME. */
 	useMediaExtendedPlayback: boolean;
+	/** Click markdown / wiki-embed images in notes to open the Oculus lightbox. */
+	lightboxMarkdownImages: boolean;
 }
 
 export const DEFAULT_SETTINGS: MediaGallerySettings = {
@@ -28,6 +30,7 @@ export const DEFAULT_SETTINGS: MediaGallerySettings = {
 	captionMaxLines: 2,
 	defaultView: "grid",
 	useMediaExtendedPlayback: true,
+	lightboxMarkdownImages: true,
 };
 
 export const IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);

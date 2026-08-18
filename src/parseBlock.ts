@@ -193,15 +193,10 @@ function parseLocalLine(rest: string, line: number, errors: ParseError[]): Local
 		return null;
 	}
 
-	let path = main;
-	let recursive = path.endsWith("/");
-	if (path.endsWith("/")) path = path.slice(0, -1);
-
-	const recursiveMatch = /\s+recursive\s*$/i.exec(path);
-	if (recursiveMatch) {
-		recursive = true;
-		path = path.slice(0, recursiveMatch.index).trim();
-	}
+	// Ignore the retired "recursive" keyword so old blocks still resolve a path.
+	let path = main.replace(/\s+recursive\s*$/i, "").trim();
+	const recursive = path.endsWith("/");
+	if (recursive) path = path.replace(/\/+$/, "");
 
 	if (!path) {
 		errors.push({ line, message: "LOCAL entry is missing a path." });
@@ -407,8 +402,8 @@ export function formatMediaGalleryBlock(options: {
 	];
 
 	for (const local of options.locals) {
-		let path = local.path;
-		if (local.recursive) path = `${path.replace(/\/$/, "")} recursive`;
+		let path = local.path.replace(/\/+$/, "");
+		if (local.recursive) path = `${path}/`;
 		const caption = local.caption ? ` | ${local.caption}` : "";
 		lines.push(`LOCAL: ${path}${caption}`);
 	}

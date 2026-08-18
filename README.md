@@ -1,30 +1,43 @@
-# Media Gallery
+# Oculus
 
-FootPrintStudio plugin for Obsidian: render local vault media and remote images/videos in grid, thumbnail, carousel, and masonry layouts inside notes.
+FootPrintStudio plugin for Obsidian: render local vault media and remote images/videos in grid, thumbnail, carousel, and masonry layouts. Clicks on ordinary note images also open the Oculus lightbox.
+
+The plugin **id** remains `media-gallery`. The display name is **Oculus**.
 
 ## Features
 
-- **Local media** — single files, folders, or recursive folder scans
+- **Local media** — single files, folders (one level), or recursive folder scans (`LOCAL: Photos/`)
 - **Remote media** — `URL:` lines for images, direct video links, and hosted platforms (YouTube, Vimeo, etc.)
 - **Views** — `grid`, `thumbnails`, `carousel`, `masonry-h`, `masonry-v`
 - **Filter** — `images`, `video`, or `all` (applies to LOCAL folder scans and URL entries)
 - **Lightbox** — prev/next, Escape, arrow keys, basic zoom on images, native video controls
+- **Note images** — wiki embeds (`![[photo.png]]`) and markdown images (`![](photo.png)`) open the same lightbox
 - **Media Extended** — video playback via [Media Extended](https://github.com/aidenlx/media-extended) when installed (desktop); required for hosted platform URLs
-- **Builder** — command palette **Insert media gallery** with live preview
+- **Builder** — command palette **Insert Oculus gallery** with live preview
 - **Auto-refresh** — open galleries re-render when vault media files change
 
 ## Block syntax
 
-Use a `media-gallery` fenced code block with two sections: **OPTIONS** and **MEDIA**.
+Use an `oculus` fenced code block with two sections: **OPTIONS** and **MEDIA**. Legacy `media-gallery` fences still render.
 
-```media-gallery
+```oculus
 OPTIONS:
 VIEW: grid | repeat(auto-fill, minmax(160px, 1fr))
 FILTER: images
 MEDIA:
-LOCAL: Media Gallery Test/Assets/ recursive | From Assets folder
+LOCAL: Media Gallery Test/Assets/ | From Assets folder
 LOCAL: Media Gallery Test/Assets/sample.png | Single file (rename if needed)
 ```
+
+### LOCAL paths
+
+| Path | Meaning |
+|------|---------|
+| `Photos/image.png` | Single file |
+| `Photos` | Folder, **this directory only** (not subfolders) |
+| `Photos/` | Folder, **recursive** (all nested folders) |
+
+A trailing `/` is the recursive flag. The old `recursive` keyword is ignored if present.
 
 ### VIEW options — column layout (grid, thumbnails, masonry-v)
 
@@ -48,28 +61,28 @@ Each view applies the parsed option differently:
 
 Examples:
 
-```media-gallery
+```oculus
 OPTIONS:
 VIEW: grid | 3
 FILTER: images
 MEDIA:
-LOCAL: Media Gallery Test/Assets/ recursive
+LOCAL: Media Gallery Test/Assets/
 ```
 
-```media-gallery
+```oculus
 OPTIONS:
 VIEW: thumbnails | 120px
 FILTER: images
 MEDIA:
-LOCAL: Media Gallery Test/Assets/ recursive
+LOCAL: Media Gallery Test/Assets/
 ```
 
-```media-gallery
+```oculus
 OPTIONS:
 VIEW: masonry-v | 200px
 FILTER: images
 MEDIA:
-LOCAL: Media Gallery Test/Assets/ recursive
+LOCAL: Media Gallery Test/Assets/
 ```
 
 ### VIEW options (carousel only)
@@ -94,12 +107,14 @@ Append options after `|` on the VIEW line (comma-separated):
 
 | Rule | Detail |
 |------|--------|
+| Fence | `oculus` (legacy `media-gallery` still works) |
 | Sections | `OPTIONS:` then `MEDIA:` (either order for VIEW/FILTER before media lines) |
 | VIEW / FILTER | One value each; duplicates are errors |
 | Captions | Pipe delimiter: `path \| caption` |
 | Comments | Lines starting with `#` are ignored |
 | List prefix | Optional leading `- ` on any line |
-| Recursive | Append `recursive` after a folder path, or end path with `/` |
+| Recursive | Folder path **ends with `/`** |
+| Non-recursive folder | Folder path **does not** end with `/` |
 | URL entries | Direct image/video URLs (`.jpg`, `.mp4`, etc.) or hosted platforms (YouTube, Vimeo, Bilibili, Coursera) |
 
 ### VIEW values
@@ -122,9 +137,19 @@ Append options after `|` on the VIEW line (comma-separated):
 
 FILTER affects **LOCAL folder scans** and **URL entries** (by detected media kind). Single LOCAL files are included if their type is supported regardless of FILTER.
 
+## Note-image lightbox
+
+With **Lightbox note images** on (default), clicks on standard note images open the Oculus lightbox instead of Obsidian’s built-in viewer:
+
+- Wiki embeds: `![[photo.png]]`
+- Markdown images: `![](photo.png)` / `![alt](https://…)`
+- Prev/next walks the other images in the same note view
+- Ctrl/Cmd, Alt, or Shift+click keeps Obsidian’s default behavior
+- Gallery tiles are unchanged (they always use the lightbox)
+
 ## Settings
 
-Open **Settings → Community plugins → Media Gallery** (Settings | README tabs).
+Open **Settings → Community plugins → Oculus** (Settings | README tabs).
 
 | Setting | Description |
 |---------|-------------|
@@ -134,6 +159,7 @@ Open **Settings → Community plugins → Media Gallery** (Settings | README tab
 | Use Media Extended for videos | Open local and direct URL videos in Media Extended when installed (desktop); hosted platform URLs always open in Media Extended |
 | Show captions | Toggle caption display on tiles and lightbox |
 | Caption max lines | Line clamp for tile captions (1–5) |
+| Lightbox note images | Click wiki embeds and markdown images to open the Oculus lightbox |
 | Default view | Used when VIEW is omitted |
 
 ### URL media notes
@@ -152,15 +178,16 @@ Open **Settings → Community plugins → Media Gallery** (Settings | README tab
 
 ## Commands
 
-- **Insert media gallery** — opens the builder modal in the active markdown note (command palette or hotkey)
+- **Insert Oculus gallery** — opens the builder modal in the active markdown note (command palette or hotkey)
 
 ### Builder
 
-The builder (**Insert media gallery**) helps compose a `media-gallery` block without memorizing syntax:
+The builder helps compose an `oculus` block without memorizing syntax:
 
 - Pick **view** and per-view layout options (columns, carousel height, masonry sizing)
 - Set **filter** (`images` / `video` / `all`) — applies to folder scans and URL entries
 - Add **local** vault paths or **remote URLs** (images, direct `.mp4` links, YouTube/Vimeo/Bilibili/Coursera)
+- End a folder path with `/` for a recursive scan
 - Live **block preview** with copy-to-clipboard
 - Drag source cards to reorder, or use move-up/down controls
 - Quick-add shortcuts: **+ Local**, **+ URL**, **+ YouTube**
@@ -169,7 +196,7 @@ Hosted platform URLs require Media Extended on desktop; the builder shows a note
 
 Example hosted URL block:
 
-```media-gallery
+```oculus
 OPTIONS:
 VIEW: grid
 FILTER: video
@@ -188,7 +215,7 @@ chmod +x build.sh
 ./build.sh
 ```
 
-Enable **Media Gallery** under Community plugins and reload Obsidian.
+Enable **Oculus** under Community plugins and reload Obsidian.
 
 ## Develop / rebuild
 
@@ -217,7 +244,7 @@ BRAT requires a [GitHub Release](https://github.com/FootPrintStudio/obsidian-med
 
 ## Credits
 
-Media Gallery is an independent FootPrintStudio plugin with its own `media-gallery` block syntax and settings. It was inspired in part by [Gallery View](https://github.com/mkshp-dev/obsidian-gallery-plugin) — particularly the idea of embedding configurable media galleries directly in notes.
+Oculus is an independent FootPrintStudio plugin. It was inspired in part by [Gallery View](https://github.com/mkshp-dev/obsidian-gallery-plugin) — particularly the idea of embedding configurable media galleries directly in notes.
 
 Masonry layouts (`masonry-h`, `masonry-v`) adapt algorithms from [Allusion](https://github.com/allusion-app/Allusion).
 
