@@ -82,11 +82,29 @@ test("formats search sources without changing LOCAL caption syntax", () => {
 	assert.match(block, /LOCAL: Media\/Favorites \| Selected works/);
 	assert.match(
 		block,
-		/SEARCH: Media\/Art\/2D recursive \| Renaissance, Sculpture/,
+		/SEARCH: Media\/Art\/2D\/ \| Renaissance, Sculpture/,
 	);
 	const reparsed = parseMediaGalleryBlock(block);
 	assert.deepEqual(reparsed.errors, []);
 	assert.deepEqual(reparsed.entries[1]?.queries, ["Renaissance", "Sculpture"]);
+});
+
+test("uses Oculus trailing-slash recursion while preserving legacy SEARCH keyword", () => {
+	const formatted = formatMediaGalleryBlock({
+		view: "grid",
+		filter: "images",
+		sources: [
+			{ kind: "local", path: "Media/Local", recursive: true },
+			{ kind: "search", path: "Media/Search", recursive: true, queries: ["portrait"] },
+		],
+	});
+	assert.match(formatted, /LOCAL: Media\/Local\//);
+	assert.match(formatted, /SEARCH: Media\/Search\/ \| portrait/);
+
+	const legacyLocal = parseMediaGalleryBlock("LOCAL: Media/Local recursive");
+	const legacySearch = parseMediaGalleryBlock("SEARCH: Media/Search recursive | portrait");
+	assert.equal(legacyLocal.entries[0]?.recursive, false);
+	assert.equal(legacySearch.entries[0]?.recursive, true);
 });
 
 test("preserves builder source order across source types", () => {

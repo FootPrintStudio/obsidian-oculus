@@ -242,9 +242,9 @@ export async function resolveGalleryItems(
 			continue;
 		}
 
-		if (abstract instanceof TFolder || entry.recursive || entry.path.endsWith("/")) {
+		if (abstract instanceof TFolder || entry.recursive) {
 			const folderPath =
-				abstract instanceof TFolder ? abstract.path : entry.path.replace(/\/$/, "");
+				abstract instanceof TFolder ? abstract.path : entry.path.replace(/\/+$/, "");
 			if (!app.vault.getAbstractFileByPath(folderPath)) {
 				warnings.push({
 					line: entry.line,

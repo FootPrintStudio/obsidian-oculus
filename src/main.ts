@@ -1,12 +1,13 @@
 import { MarkdownView, Notice, Plugin, TFile } from "obsidian";
 import { GalleryBuilderModal } from "./builderModal";
 import { createGalleryBlock, GalleryBlock } from "./galleryBlock";
+import { registerMarkdownImageLightbox } from "./noteLightbox";
 import { MediaGallerySettingTab } from "./settings";
 import { DEFAULT_SETTINGS, IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, type MediaGallerySettings } from "./types";
 
 const MEDIA_EXTENSIONS = new Set([...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS]);
 
-export default class MediaGalleryPlugin extends Plugin {
+export default class OculusPlugin extends Plugin {
 	settings: MediaGallerySettings = { ...DEFAULT_SETTINGS };
 	private activeBlocks = new Set<GalleryBlock>();
 	private refreshTimer: number | null = null;
@@ -15,9 +16,14 @@ export default class MediaGalleryPlugin extends Plugin {
 		await this.loadSettings();
 		this.addSettingTab(new MediaGallerySettingTab(this.app, this));
 
+		this.registerMarkdownCodeBlockProcessor("oculus", (source, el, ctx) => {
+			createGalleryBlock(el, ctx, this, source);
+		});
 		this.registerMarkdownCodeBlockProcessor("media-gallery", (source, el, ctx) => {
 			createGalleryBlock(el, ctx, this, source);
 		});
+
+		registerMarkdownImageLightbox(this, () => this.settings);
 
 		this.registerEvent(
 			this.app.vault.on("create", (file) => {
@@ -50,13 +56,13 @@ export default class MediaGalleryPlugin extends Plugin {
 
 		this.addCommand({
 			id: "insert-media-gallery",
-			name: "Insert media gallery",
+			name: "Insert Oculus gallery",
 			icon: "images",
 			editorCheckCallback: (checking) => {
 				const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 				if (checking) return Boolean(view?.editor);
 				if (!view?.editor) {
-					new Notice("Open a note to insert a media gallery block.");
+					new Notice("Open a note to insert an Oculus gallery block.");
 					return false;
 				}
 				new GalleryBuilderModal(this.app, this, view.editor).open();

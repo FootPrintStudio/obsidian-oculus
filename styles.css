@@ -560,8 +560,44 @@
 	border-bottom-color: var(--interactive-accent);
 }
 
-.mg-readme-panel {
+.mg-readme-panel,
+.mg-guide-panel {
 	padding-top: 0.5rem;
+	max-height: 70vh;
+	overflow-y: auto;
+	padding-right: 0.5rem;
+}
+
+.mg-readme-panel h1,
+.mg-readme-panel h2,
+.mg-readme-panel h3,
+.mg-guide-panel h1,
+.mg-guide-panel h2,
+.mg-guide-panel h3 {
+	margin-top: 1.2em;
+}
+
+.mg-readme-panel pre,
+.mg-guide-panel pre {
+	overflow-x: auto;
+}
+
+.mg-guide-panel table {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 0.5em 0;
+}
+
+.mg-guide-panel th,
+.mg-guide-panel td {
+	border: 1px solid var(--background-modifier-border);
+	padding: 0.35em 0.6em;
+	text-align: left;
+	vertical-align: top;
+}
+
+.mg-guide-panel th {
+	background: var(--background-secondary);
 }
 
 /* Builder modal */
@@ -822,4 +858,11 @@
 .mg-builder-insert-btn {
 	background: var(--interactive-accent);
 	color: var(--text-on-accent);
+}
+
+/* Note images that open the Oculus lightbox */
+.markdown-preview-view img:not(.mg-native-suppressed):not(.mg-lazy),
+.markdown-source-view img:not(.mg-native-suppressed):not(.mg-lazy),
+.markdown-rendered img:not(.mg-native-suppressed):not(.mg-lazy) {
+	cursor: zoom-in;
 }

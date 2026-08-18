@@ -1,15 +1,15 @@
 import { MarkdownPostProcessorContext, MarkdownRenderChild } from "obsidian";
-import type MediaGalleryPlugin from "./main";
+import type OculusPlugin from "./main";
 import { parseMediaGalleryBlock } from "./parseBlock";
 import { resolveGalleryItems } from "./resolveSources";
 import { resetDeferredMediaLoader } from "./views/deferredMedia";
 import { renderErrorPanel, renderGalleryView, renderWarningPanel } from "./views/renderGallery";
 
 export class GalleryBlock extends MarkdownRenderChild {
-	private plugin: MediaGalleryPlugin;
+	private plugin: OculusPlugin;
 	private source: string;
 
-	constructor(container: HTMLElement, plugin: MediaGalleryPlugin, source: string) {
+	constructor(container: HTMLElement, plugin: OculusPlugin, source: string) {
 		super(container);
 		this.plugin = plugin;
 		this.source = source;
@@ -62,7 +62,7 @@ export class GalleryBlock extends MarkdownRenderChild {
 export function createGalleryBlock(
 	el: HTMLElement,
 	ctx: MarkdownPostProcessorContext,
-	plugin: MediaGalleryPlugin,
+	plugin: OculusPlugin,
 	source: string,
 ): GalleryBlock {
 	el.empty();

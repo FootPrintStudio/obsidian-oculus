@@ -188,16 +188,21 @@ function parseFilterValue(value: string, line: number, errors: ParseError[]): Me
 	return normalized;
 }
 
-function parsePathAndRecursive(main: string): { path: string; recursive: boolean } {
-	let path = main;
-	let recursive = path.endsWith("/");
-	if (path.endsWith("/")) path = path.slice(0, -1);
+function parseLocalPath(main: string): { path: string; recursive: boolean } {
+	// Ignore the retired LOCAL "recursive" keyword so old blocks still resolve a path.
+	let path = main.replace(/\s+recursive\s*$/i, "").trim();
+	const recursive = path.endsWith("/");
+	if (recursive) path = path.replace(/\/+$/, "");
 
-	const recursiveMatch = /\s+recursive\s*$/i.exec(path);
-	if (recursiveMatch) {
-		recursive = true;
-		path = path.slice(0, recursiveMatch.index).trim();
-	}
+	return { path, recursive };
+}
+
+function parseSearchPath(main: string): { path: string; recursive: boolean } {
+	// SEARCH accepted the keyword before Oculus standardized on trailing slashes.
+	const hasLegacyRecursiveKeyword = /\s+recursive\s*$/i.test(main);
+	let path = main.replace(/\s+recursive\s*$/i, "").trim();
+	const recursive = hasLegacyRecursiveKeyword || path.endsWith("/");
+	if (path.endsWith("/")) path = path.replace(/\/+$/, "");
 
 	return { path, recursive };
 }
@@ -209,7 +214,7 @@ function parseLocalLine(rest: string, line: number, errors: ParseError[]): Local
 		return null;
 	}
 
-	const { path, recursive } = parsePathAndRecursive(main);
+	const { path, recursive } = parseLocalPath(main);
 	if (!path) {
 		errors.push({ line, message: "LOCAL entry is missing a path." });
 		return null;
@@ -247,7 +252,7 @@ function parseSearchLine(rest: string, line: number, errors: ParseError[]): Sear
 		return null;
 	}
 
-	const { path, recursive } = parsePathAndRecursive(main);
+	const { path, recursive } = parseSearchPath(main);
 	if (!path) {
 		errors.push({ line, message: "SEARCH entry is missing a folder path." });
 		return null;
@@ -491,13 +496,13 @@ export function formatMediaGalleryBlock(
 
 	for (const source of sources) {
 		if (source.kind === "local") {
-			let path = source.path;
-			if (source.recursive) path = `${path.replace(/\/$/, "")} recursive`;
+			let path = source.path.replace(/\/+$/, "");
+			if (source.recursive) path = `${path}/`;
 			const caption = source.caption ? ` | ${source.caption}` : "";
 			lines.push(`LOCAL: ${path}${caption}`);
 		} else if (source.kind === "search") {
-			let path = source.path;
-			if (source.recursive) path = `${path.replace(/\/$/, "")} recursive`;
+			let path = source.path.replace(/\/+$/, "");
+			if (source.recursive) path = `${path}/`;
 			const queries = source.queries.map((query) => query.trim());
 			if (queries.length === 0 || queries.some((query) => !query)) {
 				throw new Error("SEARCH sources require one or more non-empty queries.");

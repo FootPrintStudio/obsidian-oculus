@@ -1,7 +1,7 @@
 import { App, Modal, Notice, Platform, Setting } from "obsidian";
 import type { Editor } from "obsidian";
 import { formatMediaGalleryBlock, type FormattedMediaSource } from "./parseBlock";
-import type MediaGalleryPlugin from "./main";
+import type OculusPlugin from "./main";
 import { isMediaExtendedAvailable } from "./mediaExtended";
 import { parseMediaTitleQueries } from "./searchQuery";
 import { describeUrlMediaEntry } from "./urlMedia";
@@ -10,7 +10,6 @@ import { MEDIA_FILTERS, VIEW_TYPES, type GalleryViewType, type MediaFilter } fro
 interface LocalSource {
 	kind: "local";
 	path: string;
-	recursive: boolean;
 	caption: string;
 }
 
@@ -44,7 +43,7 @@ const FILTER_LABELS: Record<MediaFilter, string> = {
 };
 
 export class GalleryBuilderModal extends Modal {
-	private plugin: MediaGalleryPlugin;
+	private plugin: OculusPlugin;
 	private editor: Editor;
 	private view: GalleryViewType;
 	private filter: MediaFilter;
@@ -60,7 +59,7 @@ export class GalleryBuilderModal extends Modal {
 	private layoutSection: HTMLElement | null = null;
 	private layoutSettings: Setting[] = [];
 
-	constructor(app: App, plugin: MediaGalleryPlugin, editor: Editor) {
+	constructor(app: App, plugin: OculusPlugin, editor: Editor) {
 		super(app);
 		this.plugin = plugin;
 		this.editor = editor;
@@ -75,7 +74,7 @@ export class GalleryBuilderModal extends Modal {
 		contentEl.addClass("mg-builder-modal");
 
 		const header = contentEl.createDiv({ cls: "mg-builder-header" });
-		header.createEl("h2", { text: "Insert media gallery" });
+		header.createEl("h2", { text: "Insert Oculus gallery" });
 		header.createEl("p", {
 			cls: "mg-builder-header-desc",
 			text: "Configure layout, filter, and sources. Drag source cards to reorder, or use the arrow buttons.",
@@ -154,11 +153,11 @@ export class GalleryBuilderModal extends Modal {
 			}
 			const text = this.buildBlockText();
 			void navigator.clipboard.writeText(text);
-			new Notice("Media gallery block copied to clipboard.");
+			new Notice("Oculus block copied to clipboard.");
 		});
 
 		const previewBox = previewSection.createDiv({ cls: "mg-builder-preview-box" });
-		previewBox.createDiv({ cls: "mg-builder-preview-lang", text: "media-gallery" });
+		previewBox.createDiv({ cls: "mg-builder-preview-lang", text: "oculus" });
 		this.previewEl = previewBox.createEl("pre", { cls: "mg-builder-preview-code" });
 
 		const footer = contentEl.createDiv({ cls: "mg-builder-footer" });
@@ -280,7 +279,7 @@ export class GalleryBuilderModal extends Modal {
 	}
 
 	private addLocalSource(): void {
-		this.sources.push({ kind: "local", path: "", recursive: false, caption: "" });
+		this.sources.push({ kind: "local", path: "", caption: "" });
 		this.renderSources();
 		this.refreshPreview();
 	}
@@ -383,18 +382,10 @@ export class GalleryBuilderModal extends Modal {
 			if (source.kind === "local") {
 				new Setting(body)
 					.setName("Vault path")
-					.setDesc("File or folder from vault root, e.g. Assets/photo.png or Photos/")
+					.setDesc("File or folder from vault root. End a folder with / to scan recursively, e.g. Photos/")
 					.addText((text) =>
 						text.setValue(source.path).onChange((value) => {
 							source.path = value.trim();
-							this.refreshPreview();
-						}),
-					);
-				new Setting(body)
-					.setName("Recursive folder scan")
-					.addToggle((toggle) =>
-						toggle.setValue(source.recursive).onChange((value) => {
-							source.recursive = value;
 							this.refreshPreview();
 						}),
 					);
@@ -489,7 +480,7 @@ export class GalleryBuilderModal extends Modal {
 				sources.push({
 					kind: "local",
 					path: source.path,
-					recursive: source.recursive,
+					recursive: source.path.endsWith("/"),
 					caption: source.caption.trim() || undefined,
 				});
 			} else if (source.kind === "search" && source.path) {
@@ -528,7 +519,7 @@ export class GalleryBuilderModal extends Modal {
 	}
 
 	private buildBlockText(): string {
-		return `\`\`\`media-gallery\n${this.buildBlockBody()}\n\`\`\``;
+		return `\`\`\`oculus\n${this.buildBlockBody()}\n\`\`\``;
 	}
 
 	private refreshPreview(): void {
@@ -558,7 +549,7 @@ export class GalleryBuilderModal extends Modal {
 		const cursor = this.editor.getCursor();
 		this.editor.replaceRange(`${block}\n`, cursor);
 		this.close();
-		new Notice("Media gallery block inserted.");
+		new Notice("Oculus block inserted.");
 	}
 
 	onClose(): void {

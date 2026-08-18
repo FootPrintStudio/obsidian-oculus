@@ -1,11 +1,11 @@
-# Media Gallery — manual test checklist
+# Oculus — manual test checklist
 
 Use fixtures in `Media Gallery Test/` inside the Command Centre vault. Reload Obsidian after building the plugin.
 
 ## Prerequisites
 
 - Build the plugin: `cd .obsidian/plugins/media-gallery && ./build.sh`
-- Enable **Media Gallery** in Community plugins
+- Enable **Oculus** in Community plugins
 - For LOCAL tests, add a few images (and optionally a short `.mp4`) under `Media Gallery Test/Assets/` — the vault may not ship with binary fixtures
 
 ## Fixtures
@@ -21,10 +21,13 @@ Use fixtures in `Media Gallery Test/` inside the Command Centre vault. Reload Ob
 | `Media Gallery Test/06 Refresh Test.md` | Add/remove file in watched folder; gallery updates |
 | `Media Gallery Test/08 URL Video.md` | Direct URL video + FILTER |
 | `Media Gallery Test/09 Hosted Video.md` | Hosted platform URLs + ME |
+| `Media Gallery Test/10 Markdown Images.md` | Wiki embed + markdown image lightbox |
 
 ## Checklist
 
-- [ ] `media-gallery` code blocks render in Reading view
+- [ ] `oculus` code blocks render in Reading view
+- [ ] Legacy `media-gallery` fences still render
+- [ ] `LOCAL: folder/` scans nested folders; `LOCAL: folder` is one level only
 - [ ] Grid, thumbnails, carousel, masonry-h, masonry-v each display correctly
 - [ ] Click tile opens lightbox; Prev/Next and arrow keys work; Escape closes
 - [ ] Image zoom +/- works in lightbox
@@ -43,10 +46,12 @@ Use fixtures in `Media Gallery Test/` inside the Command Centre vault. Reload Ob
 - [ ] `URL:` blocked when **Allow remote media** is off (warning shown)
 - [ ] Duplicate VIEW or FILTER shows parse error panel
 - [ ] Empty MEDIA section shows error
-- [ ] **Insert media gallery** command opens builder and inserts block at cursor
+- [ ] **Insert Oculus gallery** command opens builder and inserts an `oculus` block at cursor
 - [ ] Builder drag-reorder and copy block work
+- [ ] Clicking `![[image]]` / `![](image)` in a note opens the Oculus lightbox; prev/next walks note images
+- [ ] Ctrl/Cmd-click on a note image keeps Obsidian’s default behavior
 - [ ] Vault create/delete/modify on media files refreshes open galleries (~750 ms debounce)
-- [ ] Settings README tab renders plugin README
+- [ ] Settings README and Guide tabs render (including under BRAT)
 - [ ] Plugin disable removes gallery UI cleanly
 
 ## Refresh test procedure
@@ -63,4 +68,4 @@ cd .obsidian/plugins/media-gallery
 ./build.sh
 ```
 
-Confirm `main.js` timestamp updates and Obsidian loads v1.2.0 from plugin settings.
+Confirm `main.js` timestamp updates and Obsidian loads **Oculus** v1.6.0 from plugin settings.

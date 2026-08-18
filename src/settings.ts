@@ -1,15 +1,20 @@
-import { App, Component, MarkdownRenderer, Platform, PluginSettingTab, Setting } from "obsidian";
-import type MediaGalleryPlugin from "./main";
+import { App, Component, Platform, PluginSettingTab, Setting } from "obsidian";
+import type OculusPlugin from "./main";
 import { isMediaExtendedAvailable } from "./mediaExtended";
-import { renderReadmePanel, renderSettingsTabBar, type PluginSettingsTabId } from "./readmeTab";
+import {
+	renderGuidePanel,
+	renderReadmePanel,
+	renderSettingsTabBar,
+	type PluginSettingsTabId,
+} from "./readmeTab";
 import { DEFAULT_SETTINGS, MEDIA_FILTERS, VIEW_TYPES } from "./types";
 
 export class MediaGallerySettingTab extends PluginSettingTab {
-	plugin: MediaGalleryPlugin;
+	plugin: OculusPlugin;
 	private activeTab: PluginSettingsTabId = "settings";
 	private readmeComponent = new Component();
 
-	constructor(app: App, plugin: MediaGalleryPlugin) {
+	constructor(app: App, plugin: OculusPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
@@ -24,7 +29,7 @@ export class MediaGallerySettingTab extends PluginSettingTab {
 		this.readmeComponent.unload();
 		this.readmeComponent = new Component();
 
-		containerEl.createEl("h2", { text: "Media Gallery" });
+		containerEl.createEl("h2", { text: "Oculus" });
 
 		const tabBar = containerEl.createDiv();
 		renderSettingsTabBar(tabBar, this.activeTab, (tab) => {
@@ -33,12 +38,17 @@ export class MediaGallerySettingTab extends PluginSettingTab {
 		}, "mg");
 
 		const content = containerEl.createDiv({ cls: "mg-settings-content" });
+		const pluginDir =
+			this.plugin.manifest.dir ??
+			`${this.app.vault.configDir}/plugins/${this.plugin.manifest.id}`;
 
 		if (this.activeTab === "readme") {
-			const pluginDir =
-				this.plugin.manifest.dir ??
-				`${this.app.vault.configDir}/plugins/${this.plugin.manifest.id}`;
 			renderReadmePanel(this.app, content, this.readmeComponent, "mg-readme-panel", pluginDir);
+			return;
+		}
+
+		if (this.activeTab === "guide") {
+			renderGuidePanel(this.app, content, this.readmeComponent, "mg-guide-panel", pluginDir);
 			return;
 		}
 
@@ -124,6 +134,18 @@ export class MediaGallerySettingTab extends PluginSettingTab {
 				"YouTube, Vimeo, Bilibili, and Coursera links require Media Extended on desktop. They will show a resolve warning until Media Extended is installed and enabled.",
 			);
 		}
+
+		new Setting(containerEl)
+			.setName("Lightbox note images")
+			.setDesc(
+				"Click wiki embeds and markdown images in notes to open the Oculus lightbox. Ctrl/Cmd, Alt, and Shift+click keep Obsidian’s default behavior. Gallery tiles always use the lightbox.",
+			)
+			.addToggle((toggle) =>
+				toggle.setValue(this.plugin.settings.lightboxMarkdownImages).onChange(async (value) => {
+					this.plugin.settings.lightboxMarkdownImages = value;
+					await this.plugin.saveSettings();
+				}),
+			);
 
 		new Setting(containerEl)
 			.setName("Default view")
