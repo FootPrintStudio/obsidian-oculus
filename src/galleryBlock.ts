@@ -25,7 +25,11 @@ export class GalleryBlock extends MarkdownRenderChild {
 		el.empty();
 		el.addClass("mg-block");
 
-		const parsed = parseMediaGalleryBlock(this.source, this.plugin.settings.defaultView);
+		const parsed = parseMediaGalleryBlock(
+			this.source,
+			this.plugin.settings.defaultView,
+			this.plugin.settings.defaultFilter,
+		);
 		const errorMessages = parsed.errors.map((e) => `Line ${e.line}: ${e.message}`);
 
 		if (errorMessages.length > 0) {

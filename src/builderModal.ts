@@ -64,7 +64,7 @@ export class GalleryBuilderModal extends Modal {
 		this.plugin = plugin;
 		this.editor = editor;
 		this.view = plugin.settings.defaultView;
-		this.filter = "all";
+		this.filter = plugin.settings.defaultFilter;
 	}
 
 	onOpen(): void {

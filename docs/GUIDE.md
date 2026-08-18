@@ -1,14 +1,12 @@
 # Oculus — Guide
 
-Complete reference for **Oculus** gallery blocks as implemented in v1.6.0.
+Complete reference for **Oculus** gallery blocks as implemented in v2.0.0.
 
-Use an **`oculus`** fenced code block (legacy `media-gallery` fences still render). Open notes in **Reading view** to see the gallery. The command **Insert Oculus gallery** builds a block with live preview.
+Use an **`oculus`** fenced code block. Open notes in **Reading view** to see the gallery. The command **Insert Oculus gallery** builds a block with live preview.
 
 ```oculus
-OPTIONS:
 VIEW: grid | repeat(auto-fill, minmax(160px, 1fr))
 FILTER: images
-MEDIA:
 LOCAL: Photos/ | Recursive folder
 LOCAL: Photos/cover.png | Single file
 SEARCH: Media/Art/ | Renaissance, Sculpture
@@ -22,18 +20,18 @@ See **Settings → README** for install, BRAT, and credits.
 
 | Part | Rule |
 |------|------|
-| Fence | `oculus` (legacy `media-gallery` still works) |
-| Sections | `OPTIONS:` then `MEDIA:` |
-| VIEW / FILTER | One value each; must appear before `LOCAL:` / `SEARCH:` / `URL:` lines |
+| Fence | `oculus` |
+| VIEW / FILTER | Optional; one value each. Defaults come from Settings |
 | Captions | Pipe delimiter: `path \| caption` |
 | Comments | Lines starting with `#` are ignored |
 | List prefix | Optional leading `- ` on any line |
+| Multiple sources | Indent extra `LOCAL` / `URL` / `SEARCH` paths under an empty key |
+
+`OPTIONS:` and `MEDIA:` headers are parse errors. Put every key at the top level.
 
 ```oculus
-OPTIONS:
 VIEW: grid
 FILTER: images
-MEDIA:
 LOCAL: Photos/
 URL: https://example.com/shot.jpg | Remote still
 ```
@@ -50,6 +48,17 @@ A trailing **`/`** is the recursive flag. There is no `recursive` keyword.
 | `Photos` | Folder, **this directory only** (not subfolders) |
 | `Photos/` | Folder, **recursive** (all nested folders) |
 
+Single entries use `LOCAL: path`. Several paths can sit on indented lines under `LOCAL:`:
+
+```oculus
+LOCAL: Resources/Media/2D
+LOCAL:
+	Resources/Media/3D/render1.png
+	Resources/Media/Sketches/
+```
+
+Indent with a tab or two or more spaces. A filled `LOCAL: path` may also be followed by indented siblings of the same kind.
+
 The retired `recursive` keyword is ignored if it is still present after a path, so `Photos/ recursive` still scans recursively because of the slash. Prefer `Photos/` in new blocks.
 
 FILTER applies to **folder scans**. A single LOCAL file is included whenever its type is a supported image or video.
@@ -61,9 +70,10 @@ FILTER applies to **folder scans**. A single LOCAL file is included whenever its
 SEARCH scans a folder and keeps media whose filename, without its extension, contains every query:
 
 ```oculus
-MEDIA:
 SEARCH: Media/Art | Picasso
-SEARCH: Media/Art/ | Renaissance, Sculpture
+SEARCH:
+	Media/Art/ | Renaissance, Sculpture
+	Media/Photos | sunset
 ```
 
 - Separate multiple queries with commas.
@@ -81,10 +91,10 @@ FILTER applies before title matching, so a SEARCH source only includes the selec
 ## URL entries
 
 ```oculus
-MEDIA:
 URL: https://example.com/photo.jpg | Direct image
-URL: https://www.w3schools.com/html/mov_bbb.mp4 | Direct video
-URL: https://www.youtube.com/watch?v=jNQXAC9IVRw | Hosted (Media Extended)
+URL:
+	https://www.w3schools.com/html/mov_bbb.mp4 | Direct video
+	https://www.youtube.com/watch?v=jNQXAC9IVRw | Hosted (Media Extended)
 ```
 
 | Kind | Notes |
@@ -98,7 +108,7 @@ URL: https://www.youtube.com/watch?v=jNQXAC9IVRw | Hosted (Media Extended)
 
 ## VIEW
 
-One view per block. Options go after `|`.
+One view per block. Options go after `|`. If VIEW is omitted, **Default view** from Settings is used.
 
 ### Column layout (grid, thumbnails, masonry-v)
 
@@ -117,26 +127,18 @@ One view per block. Options go after `|`.
 | `masonry-v` | ~160px target column | Shortest-column masonry |
 
 ```oculus
-OPTIONS:
 VIEW: grid | 3
 FILTER: images
-MEDIA:
 LOCAL: Photos/
 ```
 
 ```oculus
-OPTIONS:
 VIEW: thumbnails | 120px
-FILTER: images
-MEDIA:
 LOCAL: Photos/
 ```
 
 ```oculus
-OPTIONS:
 VIEW: masonry-v | 200px
-FILTER: images
-MEDIA:
 LOCAL: Photos/
 ```
 
@@ -164,9 +166,9 @@ Comma-separated options after `|`:
 
 | Value | Includes |
 |-------|----------|
+| `all` | Both images and video (default when FILTER is omitted) |
 | `images` | `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp` |
 | `video` | `.mp4`, `.webm`, `.mov`, and hosted platform URLs |
-| `all` | Both |
 
 FILTER applies to LOCAL folder scans, SEARCH sources, and URL entries. Duplicate VIEW or FILTER lines are parse errors.
 
@@ -195,12 +197,12 @@ With **Lightbox note images** on (default), clicks on ordinary note images use t
 Command palette: **Insert Oculus gallery**.
 
 - Pick view and per-view layout options
-- Set filter (`images` / `video` / `all`)
+- Set filter (`all` / `images` / `video`)
 - Add local vault paths, folder title searches, or remote URLs
 - End a folder path with `/` for a recursive scan
 - Live block preview, copy, drag-reorder
 
-The inserted fence is `oculus`.
+The inserted fence is `oculus`. Consecutive sources of the same kind are written as an indented list.
 
 ---
 
@@ -218,6 +220,7 @@ All options are under **Settings → Community plugins → Oculus**.
 | Caption max lines | Line clamp for tile captions (1–5) |
 | Lightbox note images | Click wiki embeds and markdown images to open the Oculus lightbox |
 | Default view | Used when VIEW is omitted |
+| Default filter | Used when FILTER is omitted |
 
 Hosted platform URLs (YouTube, Vimeo, Bilibili, Coursera) always require Media Extended on desktop.
 
@@ -225,6 +228,6 @@ Hosted platform URLs (YouTube, Vimeo, Bilibili, Coursera) always require Media E
 
 ## Errors and refresh
 
-- Parse problems (duplicate VIEW, bad URL scheme, empty MEDIA) show a red panel on the block.
+- Parse problems (duplicate VIEW, retired `OPTIONS:` / `MEDIA:` headers, bad URL scheme) show a red panel on the block.
 - Missing folders, empty scans, and blocked remote URLs show yellow warnings; the gallery still renders whatever resolved.
 - Open galleries refresh about 750 ms after vault create/delete/rename/modify of image or video files.

@@ -12,10 +12,8 @@ const {
 
 test("parses a direct-folder title search", () => {
 	const parsed = parseMediaGalleryBlock(`
-OPTIONS:
 VIEW: grid
 FILTER: images
-MEDIA:
 SEARCH: Media/Art/2D | Picasso
 `);
 
@@ -26,7 +24,7 @@ SEARCH: Media/Art/2D | Picasso
 			path: "Media/Art/2D",
 			queries: ["Picasso"],
 			recursive: false,
-			line: 6,
+			line: 4,
 		},
 	]);
 });
@@ -142,6 +140,83 @@ test("formatter rejects empty search query arrays and segments", () => {
 			}),
 		/one or more non-empty queries/,
 	);
+});
+
+test("rejects retired OPTIONS and MEDIA headers", () => {
+	const parsed = parseMediaGalleryBlock(`
+OPTIONS:
+VIEW: grid
+MEDIA:
+LOCAL: Photos/
+`);
+	assert.equal(parsed.errors.length >= 2, true);
+	assert.match(parsed.errors[0]?.message ?? "", /OPTIONS:/);
+	assert.equal(
+		parsed.errors.some((error) => /MEDIA:/.test(error.message)),
+		true,
+	);
+});
+
+test("defaults omitted FILTER to all", () => {
+	const parsed = parseMediaGalleryBlock("LOCAL: Photos/cover.png");
+	assert.deepEqual(parsed.errors, []);
+	assert.equal(parsed.filter, "all");
+	assert.equal(parsed.view, "grid");
+});
+
+test("parses indented LOCAL, URL, and SEARCH lists", () => {
+	const parsed = parseMediaGalleryBlock(`
+LOCAL: Resources/Media/2D
+LOCAL:
+	Resources/Media/3D/render1.png
+	Resources/Media/Sketches/
+URL:
+	https://example.com/a.jpg
+	https://example.com/b.jpg | Caption
+SEARCH:
+	Media/Art/ | Renaissance, Sculpture
+	Media/Photos | sunset
+`);
+	assert.deepEqual(parsed.errors, []);
+	assert.equal(parsed.entries.length, 7);
+	assert.equal(parsed.entries[0]?.kind, "local");
+	assert.equal(parsed.entries[0]?.path, "Resources/Media/2D");
+	assert.equal(parsed.entries[1]?.kind, "local");
+	assert.equal(parsed.entries[1]?.path, "Resources/Media/3D/render1.png");
+	assert.equal(parsed.entries[2]?.kind, "local");
+	assert.equal(parsed.entries[2]?.path, "Resources/Media/Sketches");
+	assert.equal(parsed.entries[2]?.recursive, true);
+	assert.equal(parsed.entries[3]?.kind, "url");
+	assert.equal(parsed.entries[4]?.kind, "url");
+	assert.equal(parsed.entries[4]?.caption, "Caption");
+	assert.equal(parsed.entries[5]?.kind, "search");
+	assert.deepEqual(parsed.entries[5]?.queries, ["Renaissance", "Sculpture"]);
+	assert.equal(parsed.entries[6]?.kind, "search");
+	assert.deepEqual(parsed.entries[6]?.queries, ["sunset"]);
+});
+
+test("rejects empty LOCAL headers without indented entries", () => {
+	const parsed = parseMediaGalleryBlock("LOCAL:\nVIEW: grid");
+	assert.match(parsed.errors[0]?.message ?? "", /requires a value or indented entries/);
+});
+
+test("formats consecutive same-kind sources as indented lists", () => {
+	const block = formatMediaGalleryBlock({
+		view: "grid",
+		filter: "all",
+		sources: [
+			{ kind: "local", path: "Resources/Media/2D" },
+			{ kind: "local", path: "Resources/Media/Sketches", recursive: true },
+			{ kind: "url", url: "https://example.com/a.jpg" },
+		],
+	});
+	assert.match(block, /^LOCAL:\n\tResources\/Media\/2D\n\tResources\/Media\/Sketches\//m);
+	assert.match(block, /^URL: https:\/\/example.com\/a.jpg$/m);
+	assert.equal(block.includes("OPTIONS:"), false);
+	assert.equal(block.includes("MEDIA:"), false);
+	const reparsed = parseMediaGalleryBlock(block);
+	assert.deepEqual(reparsed.errors, []);
+	assert.equal(reparsed.entries.length, 3);
 });
 
 test("matches normalized title substrings case-insensitively", () => {

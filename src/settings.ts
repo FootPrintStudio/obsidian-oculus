@@ -7,7 +7,7 @@ import {
 	renderSettingsTabBar,
 	type PluginSettingsTabId,
 } from "./readmeTab";
-import { DEFAULT_SETTINGS, MEDIA_FILTERS, VIEW_TYPES } from "./types";
+import { DEFAULT_SETTINGS, VIEW_TYPES } from "./types";
 
 export class MediaGallerySettingTab extends PluginSettingTab {
 	plugin: OculusPlugin;
@@ -149,10 +149,24 @@ export class MediaGallerySettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Default view")
+			.setDesc("Used when VIEW is omitted from a block.")
 			.addDropdown((dropdown) => {
 				for (const view of VIEW_TYPES) dropdown.addOption(view, view);
 				dropdown.setValue(this.plugin.settings.defaultView).onChange(async (value) => {
 					this.plugin.settings.defaultView = value as typeof DEFAULT_SETTINGS.defaultView;
+					await this.plugin.saveSettings();
+				});
+			});
+
+		new Setting(containerEl)
+			.setName("Default filter")
+			.setDesc("Used when FILTER is omitted from a block.")
+			.addDropdown((dropdown) => {
+				dropdown.addOption("all", "All media");
+				dropdown.addOption("images", "Images only");
+				dropdown.addOption("video", "Video only");
+				dropdown.setValue(this.plugin.settings.defaultFilter).onChange(async (value) => {
+					this.plugin.settings.defaultFilter = value as typeof DEFAULT_SETTINGS.defaultFilter;
 					await this.plugin.saveSettings();
 				});
 			});

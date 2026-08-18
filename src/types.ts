@@ -16,6 +16,8 @@ export interface MediaGallerySettings {
 	showCaptions: boolean;
 	captionMaxLines: number;
 	defaultView: GalleryViewType;
+	/** Used when a block omits FILTER. */
+	defaultFilter: MediaFilter;
 	/** When Media Extended is installed, open local/direct URL videos in its player. Hosted URLs always use ME. */
 	useMediaExtendedPlayback: boolean;
 	/** Click markdown / wiki-embed images in notes to open the Oculus lightbox. */
@@ -29,6 +31,7 @@ export const DEFAULT_SETTINGS: MediaGallerySettings = {
 	showCaptions: true,
 	captionMaxLines: 2,
 	defaultView: "grid",
+	defaultFilter: "all",
 	useMediaExtendedPlayback: true,
 	lightboxMarkdownImages: true,
 };

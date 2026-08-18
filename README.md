@@ -2,13 +2,11 @@
 
 FootPrintStudio plugin for [Obsidian](https://obsidian.md): galleries for local, searched, and remote media, plus a lightbox for ordinary note images.
 
-The plugin **id** remains `media-gallery`. The display name is **Oculus**.
+Plugin **id** is `oculus`. Fence language is **`oculus`**.
 
 ```oculus
-OPTIONS:
 VIEW: grid
 FILTER: images
-MEDIA:
 LOCAL: Photos/
 SEARCH: Media/Art/ | Renaissance, Sculpture
 ```
@@ -30,17 +28,17 @@ A folder path ending in `/` is recursive. Without the slash, only that folder is
 Not in the Obsidian Community Plugins catalog. Install via [BRAT](https://github.com/TfTHacker/obsidian42-brat):
 
 1. Enable **BRAT** in Community Plugins.
-2. **Add Beta plugin** → `FootPrintStudio/obsidian-media-gallery`
+2. **Add Beta plugin** → `FootPrintStudio/obsidian-oculus`
 3. Enable **Oculus** and reload Obsidian.
 
-BRAT installs from [GitHub Releases](https://github.com/FootPrintStudio/obsidian-media-gallery/releases). Each release attaches `main.js`, `manifest.json`, `styles.css`, and `versions.json`.
+BRAT installs from [GitHub Releases](https://github.com/FootPrintStudio/obsidian-oculus/releases). Each release attaches `main.js`, `manifest.json`, `styles.css`, and `versions.json`.
 
 ### From source
 
 ```bash
 cd /path/to/vault/.obsidian/plugins
-git clone https://github.com/FootPrintStudio/obsidian-media-gallery.git media-gallery
-cd media-gallery
+git clone https://github.com/FootPrintStudio/obsidian-oculus.git oculus
+cd oculus
 ./build.sh
 ```
 
@@ -50,11 +48,14 @@ Enable **Oculus** under Community plugins and reload Obsidian.
 
 | Piece | Rule |
 |-------|------|
-| Fence | `oculus` (legacy `media-gallery` still works) |
+| Fence | `oculus` |
 | Recursive folder | Path **ends with `/`** |
 | One-level folder | Path does **not** end with `/` |
 | Caption | `LOCAL: Photos/shot.png \| Optional caption` |
 | Title search | `SEARCH: Photos/ \| portrait, night`; every query must match |
+| Multiple sources | `LOCAL:` / `URL:` / `SEARCH:` with indented lines below |
+
+VIEW and FILTER are optional. Defaults come from **Settings**.
 
 Commas are reserved as SEARCH query separators and cannot be searched literally. Empty query segments are rejected.
 
@@ -73,6 +74,7 @@ Open **Settings → Community plugins → Oculus** (Settings | README | Guide).
 | Show captions / Caption max lines | Tile and lightbox captions |
 | Lightbox note images | Wiki embeds and markdown images open the Oculus lightbox |
 | Default view | Used when VIEW is omitted |
+| Default filter | Used when FILTER is omitted (`all` by default) |
 
 ## Develop / rebuild
 

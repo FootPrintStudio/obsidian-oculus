@@ -19,9 +19,6 @@ export default class OculusPlugin extends Plugin {
 		this.registerMarkdownCodeBlockProcessor("oculus", (source, el, ctx) => {
 			createGalleryBlock(el, ctx, this, source);
 		});
-		this.registerMarkdownCodeBlockProcessor("media-gallery", (source, el, ctx) => {
-			createGalleryBlock(el, ctx, this, source);
-		});
 
 		registerMarkdownImageLightbox(this, () => this.settings);
 
@@ -55,7 +52,7 @@ export default class OculusPlugin extends Plugin {
 		);
 
 		this.addCommand({
-			id: "insert-media-gallery",
+			id: "insert-oculus",
 			name: "Insert Oculus gallery",
 			icon: "images",
 			editorCheckCallback: (checking) => {

@@ -12,17 +12,21 @@ import {
 	VIEW_TYPES,
 } from "./types";
 
-type Section = "none" | "options" | "media";
-
 const DEFAULT_GRID_COLUMNS = DEFAULT_COLUMN_OPTION;
 const DEFAULT_THUMBNAIL_COLUMNS = DEFAULT_COLUMN_OPTION;
 const DEFAULT_CAROUSEL_HEIGHT_PX = 420;
 const DEFAULT_MASONRY_ROW_HEIGHT_PX = 200;
 
+type MediaKey = "LOCAL" | "SEARCH" | "URL";
+
 function normalizeLine(raw: string): string {
 	let line = raw.trim();
 	if (line.startsWith("- ")) line = line.slice(2).trim();
 	return line;
+}
+
+function isContinuationLine(raw: string): boolean {
+	return /^(\t| {2,})/.test(raw);
 }
 
 function splitCaption(value: string): { main: string; caption?: string } {
@@ -274,9 +278,21 @@ function parseUrlLine(rest: string, line: number, errors: ParseError[]): MediaEn
 	return { kind: "url", url: main, caption, line };
 }
 
+function parseMediaValue(
+	kind: MediaKey,
+	value: string,
+	line: number,
+	errors: ParseError[],
+): MediaEntry | null {
+	if (kind === "LOCAL") return parseLocalLine(value, line, errors);
+	if (kind === "SEARCH") return parseSearchLine(value, line, errors);
+	return parseUrlLine(value, line, errors);
+}
+
 export function parseMediaGalleryBlock(
 	source: string,
 	defaultView: GalleryViewType = "grid",
+	defaultFilter: MediaFilter = "all",
 ): ParsedGalleryBlock {
 	const errors: ParseError[] = [];
 	let view: GalleryViewType = defaultView;
@@ -286,26 +302,51 @@ export function parseMediaGalleryBlock(
 	let carouselShowThumbnails = false;
 	let masonryRowHeightPx: number | null = null;
 	let masonryColumnWidth = DEFAULT_COLUMN_OPTION;
-	let filter: MediaFilter = "images";
-	let section: Section = "none";
+	let filter: MediaFilter = defaultFilter;
 	let sawView = false;
 	let sawFilter = false;
+	let continuationKind: MediaKey | null = null;
+	let continuationHasEntry = false;
+	let pendingEmptyHeaderLine: number | null = null;
 	const entries: MediaEntry[] = [];
+
+	const flushEmptyHeader = (): void => {
+		if (continuationKind && !continuationHasEntry && pendingEmptyHeaderLine != null) {
+			errors.push({
+				line: pendingEmptyHeaderLine,
+				message: `${continuationKind}: requires a value or indented entries below it.`,
+			});
+		}
+		pendingEmptyHeaderLine = null;
+	};
 
 	const lines = source.split("\n");
 	for (let i = 0; i < lines.length; i++) {
 		const lineNum = i + 1;
-		const line = normalizeLine(lines[i] ?? "");
+		const raw = lines[i] ?? "";
+		const line = normalizeLine(raw);
 		if (!line || line.startsWith("#")) continue;
 
-		if (/^OPTIONS:$/i.test(line)) {
-			section = "options";
+		if (isContinuationLine(raw)) {
+			if (!continuationKind) {
+				errors.push({
+					line: lineNum,
+					message: "Indented line must follow LOCAL:, SEARCH:, or URL:.",
+				});
+				continue;
+			}
+			const entry = parseMediaValue(continuationKind, line, lineNum, errors);
+			if (entry) {
+				entries.push(entry);
+				continuationHasEntry = true;
+				pendingEmptyHeaderLine = null;
+			}
 			continue;
 		}
-		if (/^MEDIA:$/i.test(line)) {
-			section = "media";
-			continue;
-		}
+
+		flushEmptyHeader();
+		continuationKind = null;
+		continuationHasEntry = false;
 
 		const colonIndex = line.indexOf(":");
 		if (colonIndex === -1) {
@@ -316,71 +357,73 @@ export function parseMediaGalleryBlock(
 		const key = line.slice(0, colonIndex).trim().toUpperCase();
 		const value = line.slice(colonIndex + 1).trim();
 
-		if (key === "LOCAL" || key === "SEARCH" || key === "URL") {
-			section = "media";
-		} else if (key === "VIEW" || key === "FILTER") {
-			if (section === "media") {
-				errors.push({
-					line: lineNum,
-					message: `${key} must appear in OPTIONS (before MEDIA entries).`,
-				});
-				continue;
-			}
-			section = section === "none" ? "options" : section;
+		if (key === "OPTIONS" || key === "MEDIA") {
+			errors.push({
+				line: lineNum,
+				message: `${key}: is no longer valid. Put VIEW, FILTER, LOCAL, SEARCH, and URL at the top level.`,
+			});
+			continue;
 		}
 
-		if (section === "options" || (section === "none" && (key === "VIEW" || key === "FILTER"))) {
-			if (key === "VIEW") {
-				const parsed = parseViewLine(value, lineNum, errors);
-				if (parsed) {
-					if (sawView) errors.push({ line: lineNum, message: "Duplicate VIEW option." });
-					else {
-						view = parsed.view;
-						gridColumns = parsed.gridColumns;
-						thumbnailColumns = parsed.thumbnailColumns;
-						carouselHeightPx = parsed.carouselHeightPx;
-						carouselShowThumbnails = parsed.carouselShowThumbnails;
-						masonryRowHeightPx = parsed.masonryRowHeightPx;
-						masonryColumnWidth = parsed.masonryColumnWidth;
-						sawView = true;
-					}
-				}
-			} else if (key === "FILTER") {
-				const parsed = parseFilterValue(value, lineNum, errors);
-				if (parsed) {
-					if (sawFilter) errors.push({ line: lineNum, message: "Duplicate FILTER option." });
-					else {
-						filter = parsed;
-						sawFilter = true;
-					}
+		if (key === "VIEW") {
+			const parsed = parseViewLine(value, lineNum, errors);
+			if (parsed) {
+				if (sawView) errors.push({ line: lineNum, message: "Duplicate VIEW option." });
+				else {
+					view = parsed.view;
+					gridColumns = parsed.gridColumns;
+					thumbnailColumns = parsed.thumbnailColumns;
+					carouselHeightPx = parsed.carouselHeightPx;
+					carouselShowThumbnails = parsed.carouselShowThumbnails;
+					masonryRowHeightPx = parsed.masonryRowHeightPx;
+					masonryColumnWidth = parsed.masonryColumnWidth;
+					sawView = true;
 				}
 			}
 			continue;
 		}
 
-		if (section === "media" || key === "LOCAL" || key === "SEARCH" || key === "URL") {
-			if (key === "LOCAL") {
-				const entry = parseLocalLine(value, lineNum, errors);
-				if (entry) entries.push(entry);
-			} else if (key === "SEARCH") {
-				const entry = parseSearchLine(value, lineNum, errors);
-				if (entry) entries.push(entry);
-			} else if (key === "URL") {
-				const entry = parseUrlLine(value, lineNum, errors);
-				if (entry) entries.push(entry);
-			} else {
-				errors.push({
-					line: lineNum,
-					message: `Expected LOCAL:, SEARCH:, or URL: in MEDIA section (got ${key}).`,
-				});
+		if (key === "FILTER") {
+			const parsed = parseFilterValue(value, lineNum, errors);
+			if (parsed) {
+				if (sawFilter) errors.push({ line: lineNum, message: "Duplicate FILTER option." });
+				else {
+					filter = parsed;
+					sawFilter = true;
+				}
 			}
+			continue;
 		}
+
+		if (key === "LOCAL" || key === "SEARCH" || key === "URL") {
+			continuationKind = key;
+			if (!value) {
+				continuationHasEntry = false;
+				pendingEmptyHeaderLine = lineNum;
+			} else {
+				const entry = parseMediaValue(key, value, lineNum, errors);
+				if (entry) {
+					entries.push(entry);
+					continuationHasEntry = true;
+				} else {
+					continuationHasEntry = true;
+				}
+			}
+			continue;
+		}
+
+		errors.push({
+			line: lineNum,
+			message: `Unrecognized key "${key}". Use VIEW, FILTER, LOCAL, SEARCH, or URL.`,
+		});
 	}
+
+	flushEmptyHeader();
 
 	if (entries.length === 0 && errors.length === 0) {
 		errors.push({
 			line: 1,
-			message: "MEDIA section requires at least one LOCAL:, SEARCH:, or URL: entry.",
+			message: "Block requires at least one LOCAL:, SEARCH:, or URL: entry.",
 		});
 	}
 
@@ -446,6 +489,30 @@ function formatViewLine(options: {
 	return `VIEW: ${options.view}`;
 }
 
+function formatSourceValue(source: FormattedMediaSource): string {
+	if (source.kind === "local") {
+		let path = source.path.replace(/\/+$/, "");
+		if (source.recursive) path = `${path}/`;
+		return source.caption ? `${path} | ${source.caption}` : path;
+	}
+	if (source.kind === "search") {
+		let path = source.path.replace(/\/+$/, "");
+		if (source.recursive) path = `${path}/`;
+		const queries = source.queries.map((query) => query.trim());
+		if (queries.length === 0 || queries.some((query) => !query)) {
+			throw new Error("SEARCH sources require one or more non-empty queries.");
+		}
+		return `${path} | ${queries.join(", ")}`;
+	}
+	return source.caption ? `${source.url} | ${source.caption}` : source.url;
+}
+
+function sourceKey(kind: FormattedMediaSource["kind"]): MediaKey {
+	if (kind === "local") return "LOCAL";
+	if (kind === "search") return "SEARCH";
+	return "URL";
+}
+
 export type FormattedMediaSource =
 	| { kind: "local"; path: string; recursive?: boolean; caption?: string }
 	| { kind: "search"; path: string; recursive?: boolean; queries: string[] }
@@ -479,12 +546,7 @@ type FormatMediaGallerySources =
 export function formatMediaGalleryBlock(
 	options: FormatMediaGalleryBase & FormatMediaGallerySources,
 ): string {
-	const lines: string[] = [
-		"OPTIONS:",
-		formatViewLine(options),
-		`FILTER: ${options.filter}`,
-		"MEDIA:",
-	];
+	const lines: string[] = [formatViewLine(options), `FILTER: ${options.filter}`];
 
 	const sources: FormattedMediaSource[] =
 		options.sources ??
@@ -494,23 +556,25 @@ export function formatMediaGalleryBlock(
 			...(options.urls ?? []).map((url) => ({ kind: "url" as const, ...url })),
 		];
 
-	for (const source of sources) {
-		if (source.kind === "local") {
-			let path = source.path.replace(/\/+$/, "");
-			if (source.recursive) path = `${path}/`;
-			const caption = source.caption ? ` | ${source.caption}` : "";
-			lines.push(`LOCAL: ${path}${caption}`);
-		} else if (source.kind === "search") {
-			let path = source.path.replace(/\/+$/, "");
-			if (source.recursive) path = `${path}/`;
-			const queries = source.queries.map((query) => query.trim());
-			if (queries.length === 0 || queries.some((query) => !query)) {
-				throw new Error("SEARCH sources require one or more non-empty queries.");
-			}
-			lines.push(`SEARCH: ${path} | ${queries.join(", ")}`);
-		} else {
-			const caption = source.caption ? ` | ${source.caption}` : "";
-			lines.push(`URL: ${source.url}${caption}`);
+	let index = 0;
+	while (index < sources.length) {
+		const first = sources[index];
+		if (!first) break;
+		const kind = first.kind;
+		const group: FormattedMediaSource[] = [];
+		while (index < sources.length && sources[index]?.kind === kind) {
+			const item = sources[index];
+			if (item) group.push(item);
+			index += 1;
+		}
+		const key = sourceKey(kind);
+		if (group.length === 1 && group[0]) {
+			lines.push(`${key}: ${formatSourceValue(group[0])}`);
+			continue;
+		}
+		lines.push(`${key}:`);
+		for (const item of group) {
+			lines.push(`\t${formatSourceValue(item)}`);
 		}
 	}
 
