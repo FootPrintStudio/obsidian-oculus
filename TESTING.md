@@ -48,8 +48,7 @@ Use fixtures in `Dev Pages/Media Gallery Test/` inside the Command Centre vault.
 - [ ] `OPTIONS:` / `MEDIA:` headers show parse errors
 - [ ] Empty block with no LOCAL/SEARCH/URL shows error
 - [ ] Omitting VIEW and FILTER uses Settings defaults
-- [ ] **Insert Oculus gallery** command opens builder and inserts an `oculus` block at cursor
-- [ ] Builder drag-reorder and copy block work; multiple same-kind sources indent
+- [ ] **Augur → Insert Oculus gallery** builds and inserts an `oculus` block
 - [ ] Clicking `![[image]]` / `![](image)` in a note opens the Oculus lightbox; prev/next walks note images
 - [ ] Ctrl/Cmd-click on a note image keeps Obsidian’s default behavior
 - [ ] Vault create/delete/modify on media files refreshes open galleries (~750 ms debounce)

@@ -21,7 +21,7 @@ A folder path ending in `/` is recursive. Without the slash, only that folder is
 - **Views** — `grid`, `thumbnails`, `carousel`, `masonry-h`, `masonry-v`
 - **Lightbox** — gallery tiles, plus wiki embeds and markdown images in notes
 - **Media Extended** — desktop video / hosted URL playback when that plugin is installed
-- **Builder** — command palette **Insert Oculus gallery**, including draggable Search source cards
+- **Authoring** — install **Augur** for the gallery builder, vault path picker, and syntax suggestions
 
 ## Install (BRAT)
 

@@ -2,7 +2,7 @@
 
 Complete reference for **Oculus** gallery blocks as implemented in v2.0.0.
 
-Use an **`oculus`** fenced code block. Open notes in **Reading view** to see the gallery. The command **Insert Oculus gallery** builds a block with live preview.
+Use an **`oculus`** fenced code block. Open notes in **Reading view** to see the gallery. Install **Augur** for the gallery builder, vault path picker, and as-you-type suggestions.
 
 ```oculus
 VIEW: grid | repeat(auto-fill, minmax(160px, 1fr))
@@ -194,7 +194,7 @@ With **Lightbox note images** on (default), clicks on ordinary note images use t
 
 ## Builder
 
-Command palette: **Insert Oculus gallery**.
+Install the **Augur** companion plugin. Command palette: **Insert Oculus gallery**.
 
 - Pick view and per-view layout options
 - Set filter (`all` / `images` / `video`)
