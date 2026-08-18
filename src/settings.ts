@@ -1,7 +1,12 @@
-import { App, Component, MarkdownRenderer, Platform, PluginSettingTab, Setting } from "obsidian";
+import { App, Component, Platform, PluginSettingTab, Setting } from "obsidian";
 import type OculusPlugin from "./main";
 import { isMediaExtendedAvailable } from "./mediaExtended";
-import { renderReadmePanel, renderSettingsTabBar, type PluginSettingsTabId } from "./readmeTab";
+import {
+	renderGuidePanel,
+	renderReadmePanel,
+	renderSettingsTabBar,
+	type PluginSettingsTabId,
+} from "./readmeTab";
 import { DEFAULT_SETTINGS, MEDIA_FILTERS, VIEW_TYPES } from "./types";
 
 export class MediaGallerySettingTab extends PluginSettingTab {
@@ -33,12 +38,17 @@ export class MediaGallerySettingTab extends PluginSettingTab {
 		}, "mg");
 
 		const content = containerEl.createDiv({ cls: "mg-settings-content" });
+		const pluginDir =
+			this.plugin.manifest.dir ??
+			`${this.app.vault.configDir}/plugins/${this.plugin.manifest.id}`;
 
 		if (this.activeTab === "readme") {
-			const pluginDir =
-				this.plugin.manifest.dir ??
-				`${this.app.vault.configDir}/plugins/${this.plugin.manifest.id}`;
 			renderReadmePanel(this.app, content, this.readmeComponent, "mg-readme-panel", pluginDir);
+			return;
+		}
+
+		if (this.activeTab === "guide") {
+			renderGuidePanel(this.app, content, this.readmeComponent, "mg-guide-panel", pluginDir);
 			return;
 		}
 

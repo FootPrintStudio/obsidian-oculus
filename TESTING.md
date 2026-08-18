@@ -48,7 +48,7 @@ Use fixtures in `Media Gallery Test/` inside the Command Centre vault. Reload Ob
 - [ ] Clicking `![[image]]` / `![](image)` in a note opens the Oculus lightbox; prev/next walks note images
 - [ ] Ctrl/Cmd-click on a note image keeps Obsidian’s default behavior
 - [ ] Vault create/delete/modify on media files refreshes open galleries (~750 ms debounce)
-- [ ] Settings README tab renders plugin README
+- [ ] Settings README and Guide tabs render (including under BRAT)
 - [ ] Plugin disable removes gallery UI cleanly
 
 ## Refresh test procedure
