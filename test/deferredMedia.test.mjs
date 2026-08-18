@@ -89,9 +89,9 @@ globalThis.HTMLVideoElement = FakeVideo;
 globalThis.IntersectionObserver = FakeIntersectionObserver;
 
 const { observeDeferredMedia, resetDeferredMediaLoader } = await import(
-	"../.test-build/deferredMedia.mjs"
+	"../.test-build/views/deferredMedia.mjs"
 );
-const { attachAspectRatioListener } = await import("../.test-build/mediaAspect.mjs");
+const { attachAspectRatioListener } = await import("../.test-build/views/mediaAspect.mjs");
 
 function createComponent() {
 	return {
