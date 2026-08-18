@@ -3,7 +3,7 @@ import type { Component } from "obsidian";
 const DEFERRED_MEDIA_ROOT_MARGIN = "600px";
 
 interface DeferredMediaLoader {
-	observer: IntersectionObserver;
+	observers: Map<Document, IntersectionObserver>;
 }
 
 const deferredMediaLoaders = new WeakMap<Component, DeferredMediaLoader>();
@@ -39,7 +39,10 @@ function activateDeferredMedia(media: HTMLImageElement | HTMLVideoElement): void
 }
 
 export function resetDeferredMediaLoader(component: Component): void {
-	deferredMediaLoaders.get(component)?.observer.disconnect();
+	const loader = deferredMediaLoaders.get(component);
+	if (!loader) return;
+	for (const observer of loader.observers.values()) observer.disconnect();
+	loader.observers.clear();
 }
 
 export function observeDeferredMedia(
@@ -48,14 +51,27 @@ export function observeDeferredMedia(
 ): void {
 	media.classList.add("mg-lazy");
 
-	if (typeof IntersectionObserver === "undefined") {
+	const document = media.ownerDocument;
+	const Observer = document.defaultView?.IntersectionObserver;
+	if (!Observer) {
 		activateDeferredMedia(media);
 		return;
 	}
 
 	let loader = deferredMediaLoaders.get(component);
 	if (!loader) {
-		const observer = new IntersectionObserver(
+		loader = { observers: new Map() };
+		deferredMediaLoaders.set(component, loader);
+		component.register(() => {
+			for (const observer of loader.observers.values()) observer.disconnect();
+			loader.observers.clear();
+			deferredMediaLoaders.delete(component);
+		});
+	}
+
+	let observer = loader.observers.get(document);
+	if (!observer) {
+		observer = new Observer(
 			(entries) => {
 				for (const entry of entries) {
 					if (!entry.isIntersecting) continue;
@@ -67,20 +83,18 @@ export function observeDeferredMedia(
 			},
 			{ rootMargin: DEFERRED_MEDIA_ROOT_MARGIN },
 		);
-		loader = { observer };
-		deferredMediaLoaders.set(component, loader);
-		component.register(() => {
-			observer.disconnect();
-			deferredMediaLoaders.delete(component);
-		});
+		loader.observers.set(document, observer);
 	}
 
-	loader.observer.observe(media);
+	observer.observe(media);
 }
 
 export function unobserveDeferredMedia(
 	component: Component,
 	media: HTMLImageElement | HTMLVideoElement,
 ): void {
-	deferredMediaLoaders.get(component)?.observer.unobserve(media);
+	deferredMediaLoaders
+		.get(component)
+		?.observers.get(media.ownerDocument)
+		?.unobserve(media);
 }

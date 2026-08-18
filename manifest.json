@@ -1,7 +1,7 @@
 {
 	"id": "media-gallery",
 	"name": "Oculus",
-	"version": "1.5.0",
+	"version": "1.6.0",
 	"minAppVersion": "1.5.0",
 	"description": "Oculus — local, searched, and remote media galleries with a note-image lightbox.",
 	"author": "FootPrintStudio",

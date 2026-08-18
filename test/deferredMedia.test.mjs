@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+let defaultDocument;
+
 class FakeClassList {
 	#classes = new Set();
 
@@ -20,6 +22,7 @@ class FakeMedia {
 		this.dataset = {};
 		this.listeners = new Map();
 		this.src = "";
+		this.ownerDocument = defaultDocument;
 	}
 
 	addEventListener(type, listener) {
@@ -63,7 +66,7 @@ class FakeIntersectionObserver {
 		this.options = options;
 		this.targets = new Set();
 		this.disconnectCalls = 0;
-		FakeIntersectionObserver.instances.push(this);
+		this.constructor.instances.push(this);
 	}
 
 	observe(target) {
@@ -83,6 +86,14 @@ class FakeIntersectionObserver {
 		this.callback([{ target, isIntersecting }]);
 	}
 }
+
+class PopoutIntersectionObserver extends FakeIntersectionObserver {
+	static instances = [];
+}
+
+defaultDocument = {
+	defaultView: { IntersectionObserver: FakeIntersectionObserver },
+};
 
 globalThis.HTMLImageElement = FakeImage;
 globalThis.HTMLVideoElement = FakeVideo;
@@ -153,13 +164,18 @@ test("does not request video metadata until the tile approaches the viewport", (
 test("loads media created by a different window realm", () => {
 	const component = createComponent();
 	const foreignImage = new FakeMedia("IMG");
+	foreignImage.ownerDocument = {
+		defaultView: { IntersectionObserver: PopoutIntersectionObserver },
+	};
 	foreignImage.complete = false;
 	foreignImage.naturalWidth = 0;
 	foreignImage.dataset.src = "app://vault/popout.jpg";
 
 	assert.equal(foreignImage instanceof HTMLImageElement, false);
 	observeDeferredMedia(component, foreignImage);
-	const observer = FakeIntersectionObserver.instances.at(-1);
+	const observer = PopoutIntersectionObserver.instances.at(-1);
+	assert.ok(observer);
+	assert.equal(FakeIntersectionObserver.instances.includes(observer), false);
 	observer.trigger(foreignImage, true);
 
 	assert.equal(foreignImage.src, "app://vault/popout.jpg");
@@ -196,10 +212,12 @@ test("disconnects stale observations on rerender and unload", () => {
 	assert.equal(observer.targets.size, 0);
 
 	observeDeferredMedia(component, second);
-	assert.equal(FakeIntersectionObserver.instances.at(-1), observer);
-	assert.equal(observer.targets.has(second), true);
+	const replacement = FakeIntersectionObserver.instances.at(-1);
+	assert.notEqual(replacement, observer);
+	assert.equal(replacement.targets.has(second), true);
 
 	component.cleanup();
-	assert.equal(observer.disconnectCalls, 2);
+	assert.equal(observer.disconnectCalls, 1);
+	assert.equal(replacement.disconnectCalls, 1);
 	assert.equal(observer.targets.size, 0);
 });
