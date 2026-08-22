@@ -170,5 +170,22 @@ export class MediaGallerySettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				});
 			});
+
+		new Setting(containerEl)
+			.setName("CollectionXiewer API URL")
+			.setDesc(
+				"Loopback base URL for XIEWER: sources (default http://127.0.0.1:47821). CollectionXiewer must be running.",
+			)
+			.addText((text) =>
+				text
+					.setPlaceholder("http://127.0.0.1:47821")
+					.setValue(this.plugin.settings.collectionXiewerBaseUrl)
+					.onChange(async (value) => {
+						const trimmed = value.trim().replace(/\/+$/, "");
+						this.plugin.settings.collectionXiewerBaseUrl =
+							trimmed || DEFAULT_SETTINGS.collectionXiewerBaseUrl;
+						await this.plugin.saveSettings();
+					}),
+			);
 	}
 }

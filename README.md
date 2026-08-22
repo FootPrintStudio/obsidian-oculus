@@ -7,16 +7,21 @@ Plugin **id** is `oculus`. Fence language is **`oculus`**.
 ```oculus
 VIEW: grid
 FILTER: images
+LIMIT: 24
+SORT: date DSC
 LOCAL: Photos/
 SEARCH: Media/Art/ | Renaissance, Sculpture
+XIEWER: tag:hero kind:image
 ```
 
-A folder path ending in `/` is recursive. Without the slash, only that folder is scanned. `SEARCH` queries are comma-separated, case-insensitive, and all queries must match the filename without its extension. Full syntax is in **Settings → Guide** (or [docs/GUIDE.md](docs/GUIDE.md)).
+A folder path ending in `/` is recursive. Without the slash, only that folder is scanned. `SEARCH` queries are comma-separated, case-insensitive, and all queries must match the filename without its extension. `XIEWER:` forwards CollectionXiewer search syntax to the running app’s local API. Full syntax is in **Settings → Guide** (or [docs/GUIDE.md](docs/GUIDE.md)).
 
 ## Features
 
 - **Local media** — files, one-level folders, or recursive scans (`LOCAL: Photos/`)
 - **Title search** — folder media whose filenames contain every comma-separated query
+- **CollectionXiewer** — `XIEWER:` queries via the loopback API (app must be running)
+- **LIMIT / SORT** — cap SEARCH/XIEWER results; reorder the merged gallery
 - **Remote media** — images, direct video URLs, and hosted platforms (YouTube, Vimeo, …)
 - **Views** — `grid`, `thumbnails`, `carousel`, `masonry-h`, `masonry-v`
 - **Lightbox** — gallery tiles, plus wiki embeds and markdown images in notes
@@ -53,7 +58,10 @@ Enable **Oculus** under Community plugins and reload Obsidian.
 | One-level folder | Path does **not** end with `/` |
 | Caption | `LOCAL: Photos/shot.png \| Optional caption` |
 | Title search | `SEARCH: Photos/ \| portrait, night`; every query must match |
-| Multiple sources | `LOCAL:` / `URL:` / `SEARCH:` with indented lines below |
+| CollectionXiewer | `XIEWER: tag:hero kind:image` (app running on loopback API) |
+| Limit | `LIMIT: 24` — caps each SEARCH and XIEWER source |
+| Sort | `SORT: name ASC` / `date DSC` / `random` — whole gallery |
+| Multiple sources | `LOCAL:` / `URL:` / `SEARCH:` / `XIEWER:` with indented lines below |
 
 VIEW and FILTER are optional. Defaults come from **Settings**.
 
@@ -75,6 +83,7 @@ Open **Settings → Community plugins → Oculus** (Settings | README | Guide).
 | Lightbox note images | Wiki embeds and markdown images open the Oculus lightbox |
 | Default view | Used when VIEW is omitted |
 | Default filter | Used when FILTER is omitted (`all` by default) |
+| CollectionXiewer API URL | Base URL for `XIEWER:` (default `http://127.0.0.1:47821`) |
 
 ## Develop / rebuild
 

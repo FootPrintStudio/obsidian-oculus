@@ -1,9 +1,9 @@
 {
 	"id": "oculus",
 	"name": "Oculus",
-	"version": "2.0.1",
+	"version": "2.1.0",
 	"minAppVersion": "1.5.0",
-	"description": "Oculus — local, searched, and remote media galleries with a note-image lightbox.",
+	"description": "Oculus — local, searched, CollectionXiewer, and remote media galleries with a note-image lightbox.",
 	"author": "FootPrintStudio",
 	"authorUrl": "https://github.com/FootPrintStudio",
 	"isDesktopOnly": false

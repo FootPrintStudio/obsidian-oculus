@@ -1,6 +1,7 @@
 import { DEFAULT_COLUMN_OPTION } from "./layout/columnOptions";
 import { parseMediaTitleQueries } from "./searchQuery";
 import {
+	type GallerySortMode,
 	type GalleryViewType,
 	type LocalMediaEntry,
 	type MediaEntry,
@@ -8,6 +9,7 @@ import {
 	type ParseError,
 	type ParsedGalleryBlock,
 	type SearchMediaEntry,
+	type XiewerMediaEntry,
 	MEDIA_FILTERS,
 	VIEW_TYPES,
 } from "./types";
@@ -17,7 +19,7 @@ const DEFAULT_THUMBNAIL_COLUMNS = DEFAULT_COLUMN_OPTION;
 const DEFAULT_CAROUSEL_HEIGHT_PX = 420;
 const DEFAULT_MASONRY_ROW_HEIGHT_PX = 200;
 
-type MediaKey = "LOCAL" | "SEARCH" | "URL";
+type MediaKey = "LOCAL" | "SEARCH" | "URL" | "XIEWER";
 
 function normalizeLine(raw: string): string {
 	let line = raw.trim();
@@ -278,6 +280,53 @@ function parseUrlLine(rest: string, line: number, errors: ParseError[]): MediaEn
 	return { kind: "url", url: main, caption, line };
 }
 
+function parseXiewerLine(rest: string, line: number, errors: ParseError[]): XiewerMediaEntry | null {
+	const query = rest.trim();
+	if (!query) {
+		errors.push({ line, message: "XIEWER entry requires a CollectionXiewer search query." });
+		return null;
+	}
+	return { kind: "xiewer", query, line };
+}
+
+function parseLimitValue(value: string, line: number, errors: ParseError[]): number | null {
+	const trimmed = value.trim();
+	if (!/^\d+$/.test(trimmed)) {
+		errors.push({
+			line,
+			message: `LIMIT must be a positive integer (got "${value}").`,
+		});
+		return null;
+	}
+	const n = Number.parseInt(trimmed, 10);
+	if (n <= 0) {
+		errors.push({ line, message: "LIMIT must be a positive integer." });
+		return null;
+	}
+	return n;
+}
+
+function parseSortValue(value: string, line: number, errors: ParseError[]): GallerySortMode | null {
+	const trimmed = value.trim().replace(/\s+/g, " ");
+	const lower = trimmed.toLowerCase();
+
+	if (lower === "random") return "random";
+
+	const match = /^(name|date)\s+(asc|dsc|desc)$/i.exec(trimmed);
+	if (!match?.[1] || !match[2]) {
+		errors.push({
+			line,
+			message: `Unknown SORT "${value}". Use: name ASC, name DSC, date ASC, date DSC, or random.`,
+		});
+		return null;
+	}
+
+	const field = match[1].toLowerCase() as "name" | "date";
+	const dirRaw = match[2].toLowerCase();
+	const dir = dirRaw === "asc" ? "asc" : "dsc";
+	return `${field}-${dir}` as GallerySortMode;
+}
+
 function parseMediaValue(
 	kind: MediaKey,
 	value: string,
@@ -286,6 +335,7 @@ function parseMediaValue(
 ): MediaEntry | null {
 	if (kind === "LOCAL") return parseLocalLine(value, line, errors);
 	if (kind === "SEARCH") return parseSearchLine(value, line, errors);
+	if (kind === "XIEWER") return parseXiewerLine(value, line, errors);
 	return parseUrlLine(value, line, errors);
 }
 
@@ -303,8 +353,12 @@ export function parseMediaGalleryBlock(
 	let masonryRowHeightPx: number | null = null;
 	let masonryColumnWidth = DEFAULT_COLUMN_OPTION;
 	let filter: MediaFilter = defaultFilter;
+	let limit: number | null = null;
+	let sort: GallerySortMode | null = null;
 	let sawView = false;
 	let sawFilter = false;
+	let sawLimit = false;
+	let sawSort = false;
 	let continuationKind: MediaKey | null = null;
 	let continuationHasEntry = false;
 	let pendingEmptyHeaderLine: number | null = null;
@@ -331,7 +385,7 @@ export function parseMediaGalleryBlock(
 			if (!continuationKind) {
 				errors.push({
 					line: lineNum,
-					message: "Indented line must follow LOCAL:, SEARCH:, or URL:.",
+					message: "Indented line must follow LOCAL:, SEARCH:, URL:, or XIEWER:.",
 				});
 				continue;
 			}
@@ -360,7 +414,7 @@ export function parseMediaGalleryBlock(
 		if (key === "OPTIONS" || key === "MEDIA") {
 			errors.push({
 				line: lineNum,
-				message: `${key}: is no longer valid. Put VIEW, FILTER, LOCAL, SEARCH, and URL at the top level.`,
+				message: `${key}: is no longer valid. Put VIEW, FILTER, LIMIT, SORT, LOCAL, SEARCH, URL, and XIEWER at the top level.`,
 			});
 			continue;
 		}
@@ -395,7 +449,31 @@ export function parseMediaGalleryBlock(
 			continue;
 		}
 
-		if (key === "LOCAL" || key === "SEARCH" || key === "URL") {
+		if (key === "LIMIT") {
+			const parsed = parseLimitValue(value, lineNum, errors);
+			if (parsed != null) {
+				if (sawLimit) errors.push({ line: lineNum, message: "Duplicate LIMIT option." });
+				else {
+					limit = parsed;
+					sawLimit = true;
+				}
+			}
+			continue;
+		}
+
+		if (key === "SORT") {
+			const parsed = parseSortValue(value, lineNum, errors);
+			if (parsed) {
+				if (sawSort) errors.push({ line: lineNum, message: "Duplicate SORT option." });
+				else {
+					sort = parsed;
+					sawSort = true;
+				}
+			}
+			continue;
+		}
+
+		if (key === "LOCAL" || key === "SEARCH" || key === "URL" || key === "XIEWER") {
 			continuationKind = key;
 			if (!value) {
 				continuationHasEntry = false;
@@ -414,7 +492,7 @@ export function parseMediaGalleryBlock(
 
 		errors.push({
 			line: lineNum,
-			message: `Unrecognized key "${key}". Use VIEW, FILTER, LOCAL, SEARCH, or URL.`,
+			message: `Unrecognized key "${key}". Use VIEW, FILTER, LIMIT, SORT, LOCAL, SEARCH, URL, or XIEWER.`,
 		});
 	}
 
@@ -423,13 +501,15 @@ export function parseMediaGalleryBlock(
 	if (entries.length === 0 && errors.length === 0) {
 		errors.push({
 			line: 1,
-			message: "Block requires at least one LOCAL:, SEARCH:, or URL: entry.",
+			message: "Block requires at least one LOCAL:, SEARCH:, URL:, or XIEWER: entry.",
 		});
 	}
 
 	return {
 		view,
 		filter,
+		limit,
+		sort,
 		gridColumns,
 		thumbnailColumns,
 		carouselHeightPx,
@@ -504,23 +584,38 @@ function formatSourceValue(source: FormattedMediaSource): string {
 		}
 		return `${path} | ${queries.join(", ")}`;
 	}
+	if (source.kind === "xiewer") {
+		const query = source.query.trim();
+		if (!query) throw new Error("XIEWER sources require a non-empty query.");
+		return query;
+	}
 	return source.caption ? `${source.url} | ${source.caption}` : source.url;
 }
 
 function sourceKey(kind: FormattedMediaSource["kind"]): MediaKey {
 	if (kind === "local") return "LOCAL";
 	if (kind === "search") return "SEARCH";
+	if (kind === "xiewer") return "XIEWER";
 	return "URL";
+}
+
+function formatSortLine(sort: GallerySortMode): string {
+	if (sort === "random") return "SORT: random";
+	const [field, dir] = sort.split("-") as ["name" | "date", "asc" | "dsc"];
+	return `SORT: ${field} ${dir.toUpperCase()}`;
 }
 
 export type FormattedMediaSource =
 	| { kind: "local"; path: string; recursive?: boolean; caption?: string }
 	| { kind: "search"; path: string; recursive?: boolean; queries: string[] }
-	| { kind: "url"; url: string; caption?: string };
+	| { kind: "url"; url: string; caption?: string }
+	| { kind: "xiewer"; query: string };
 
 interface FormatMediaGalleryBase {
 	view: GalleryViewType;
 	filter: MediaFilter;
+	limit?: number | null;
+	sort?: GallerySortMode | null;
 	gridColumns?: string;
 	thumbnailColumns?: string;
 	carouselHeightPx?: number | null;
@@ -535,18 +630,22 @@ type FormatMediaGallerySources =
 			locals?: never;
 			searches?: never;
 			urls?: never;
+			xiewers?: never;
 	  }
 	| {
 			sources?: never;
 			locals: Array<{ path: string; recursive?: boolean; caption?: string }>;
 			searches?: Array<{ path: string; recursive?: boolean; queries: string[] }>;
 			urls: Array<{ url: string; caption?: string }>;
+			xiewers?: Array<{ query: string }>;
 	  };
 
 export function formatMediaGalleryBlock(
 	options: FormatMediaGalleryBase & FormatMediaGallerySources,
 ): string {
 	const lines: string[] = [formatViewLine(options), `FILTER: ${options.filter}`];
+	if (options.limit != null) lines.push(`LIMIT: ${options.limit}`);
+	if (options.sort) lines.push(formatSortLine(options.sort));
 
 	const sources: FormattedMediaSource[] =
 		options.sources ??
@@ -554,6 +653,7 @@ export function formatMediaGalleryBlock(
 			...(options.locals ?? []).map((local) => ({ kind: "local" as const, ...local })),
 			...(options.searches ?? []).map((search) => ({ kind: "search" as const, ...search })),
 			...(options.urls ?? []).map((url) => ({ kind: "url" as const, ...url })),
+			...(options.xiewers ?? []).map((xiewer) => ({ kind: "xiewer" as const, ...xiewer })),
 		];
 
 	let index = 0;
@@ -580,3 +680,4 @@ export function formatMediaGalleryBlock(
 
 	return lines.join("\n");
 }
+

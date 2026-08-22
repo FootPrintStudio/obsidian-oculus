@@ -46,7 +46,10 @@ Use fixtures in `Dev Pages/Media Gallery Test/` inside the Command Centre vault.
 - [ ] `URL:` blocked when **Allow remote media** is off (warning shown)
 - [ ] Duplicate VIEW or FILTER shows parse error panel
 - [ ] `OPTIONS:` / `MEDIA:` headers show parse errors
-- [ ] Empty block with no LOCAL/SEARCH/URL shows error
+- [ ] `XIEWER:` resolves when CollectionXiewer is running; warning when it is not
+- [ ] `LIMIT:` caps SEARCH and XIEWER results only
+- [ ] `SORT: date DSC` / `name ASC` / `random` reorder the merged gallery
+- [ ] Empty block with no LOCAL/SEARCH/URL/XIEWER shows error
 - [ ] Omitting VIEW and FILTER uses Settings defaults
 - [ ] **Augur → Insert Oculus gallery** builds and inserts an `oculus` block
 - [ ] Clicking `![[image]]` / `![](image)` in a note opens the Oculus lightbox; prev/next walks note images

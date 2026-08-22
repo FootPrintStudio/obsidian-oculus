@@ -140,7 +140,7 @@ function suppressNativeImageViewer(tile: HTMLElement, onOpen: () => void): void 
 }
 
 function attachRemoteLoadErrorHandler(tile: HTMLElement, item: GalleryItem): void {
-	if (item.source !== "url" || item.urlVariant === "hosted") return;
+	if ((item.source !== "url" && item.source !== "xiewer") || item.urlVariant === "hosted") return;
 
 	const media = tile.querySelector("img, video");
 	if (!media) return;

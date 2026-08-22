@@ -1,13 +1,13 @@
 {
 	"name": "obsidian-oculus",
-	"version": "2.0.1",
+	"version": "2.1.0",
 	"description": "Oculus — local, searched, and remote media galleries with a note-image lightbox.",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
-		"test": "esbuild src/views/deferredMedia.ts src/views/mediaAspect.ts src/parseBlock.ts src/searchQuery.ts --bundle --platform=node --format=esm --out-extension:.js=.mjs --outdir=.test-build && node --test test/*.test.mjs"
+		"test": "esbuild src/views/deferredMedia.ts src/views/mediaAspect.ts src/parseBlock.ts src/searchQuery.ts src/gallerySort.ts --bundle --platform=node --format=esm --out-extension:.js=.mjs --outdir=.test-build && node --test test/*.test.mjs"
 	},
 	"keywords": ["obsidian", "plugin", "gallery", "media"],
 	"license": "MIT",

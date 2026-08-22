@@ -1,15 +1,18 @@
 # Oculus — Guide
 
-Complete reference for **Oculus** gallery blocks as implemented in v2.0.0.
+Complete reference for **Oculus** gallery blocks as implemented in v2.1.0.
 
 Use an **`oculus`** fenced code block. Open notes in **Reading view** to see the gallery. Install **Augur** for the gallery builder, vault path picker, and as-you-type suggestions.
 
 ```oculus
 VIEW: grid | repeat(auto-fill, minmax(160px, 1fr))
 FILTER: images
+LIMIT: 24
+SORT: date DSC
 LOCAL: Photos/ | Recursive folder
 LOCAL: Photos/cover.png | Single file
 SEARCH: Media/Art/ | Renaissance, Sculpture
+XIEWER: tag:hero kind:image
 ```
 
 See **Settings → README** for install, BRAT, and credits.
@@ -22,10 +25,12 @@ See **Settings → README** for install, BRAT, and credits.
 |------|------|
 | Fence | `oculus` |
 | VIEW / FILTER | Optional; one value each. Defaults come from Settings |
+| LIMIT | Optional; caps each SEARCH and XIEWER source |
+| SORT | Optional; reorders the whole merged gallery |
 | Captions | Pipe delimiter: `path \| caption` |
 | Comments | Lines starting with `#` are ignored |
 | List prefix | Optional leading `- ` on any line |
-| Multiple sources | Indent extra `LOCAL` / `URL` / `SEARCH` paths under an empty key |
+| Multiple sources | Indent extra `LOCAL` / `URL` / `SEARCH` / `XIEWER` paths under an empty key |
 
 `OPTIONS:` and `MEDIA:` headers are parse errors. Put every key at the top level.
 
@@ -85,6 +90,60 @@ SEARCH:
 - The legacy `SEARCH: folder recursive | query` form remains readable; prefer a trailing `/`.
 
 FILTER applies before title matching, so a SEARCH source only includes the selected media kinds.
+
+When **LIMIT** is set, each SEARCH source is capped after matching (before merge with other sources).
+
+---
+
+## XIEWER (CollectionXiewer)
+
+`XIEWER:` passes an opaque query to the CollectionXiewer local API (`http://127.0.0.1:47821` by default). The app must be running.
+
+```oculus
+XIEWER: tag:hero kind:image
+XIEWER:
+	tag:reference
+	collection:"Mood board"
+```
+
+- Syntax is CollectionXiewer’s search language (tags, collections, `kind:`, booleans, …).
+- Oculus does not reinterpret the query.
+- Results load through the API file proxy (`/file/:id`).
+- FILTER applies by media kind (`motion` counts as image).
+- LIMIT caps each XIEWER source’s results.
+- Override the API base URL in **Settings → CollectionXiewer API URL**.
+
+---
+
+## LIMIT
+
+Optional. Positive integer. At most one per block.
+
+```oculus
+LIMIT: 24
+```
+
+Applies only to **SEARCH** and **XIEWER** sources (each source is capped independently). LOCAL and URL are not limited by this key.
+
+---
+
+## SORT
+
+Optional. At most one per block. Applied to the **whole merged gallery** after all sources resolve.
+
+| Value | Effect |
+|-------|--------|
+| `name ASC` | Filename ascending |
+| `name DSC` | Filename descending (`DESC` is accepted as an alias) |
+| `date ASC` | Oldest modified first (`mtime`) |
+| `date DSC` | Newest modified first |
+| `random` | Shuffle |
+
+```oculus
+SORT: date DSC
+```
+
+When SORT is omitted, Oculus keeps today’s behavior: source order, with path ASC inside each folder scan.
 
 ---
 
@@ -170,7 +229,7 @@ Comma-separated options after `|`:
 | `images` | `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp` |
 | `video` | `.mp4`, `.webm`, `.mov`, and hosted platform URLs |
 
-FILTER applies to LOCAL folder scans, SEARCH sources, and URL entries. Duplicate VIEW or FILTER lines are parse errors.
+FILTER applies to LOCAL folder scans, SEARCH sources, URL entries, and XIEWER results. Duplicate VIEW, FILTER, LIMIT, or SORT lines are parse errors.
 
 ---
 
@@ -198,7 +257,8 @@ Install the **Augur** companion plugin. Command palette: **Insert Oculus gallery
 
 - Pick view and per-view layout options
 - Set filter (`all` / `images` / `video`)
-- Add local vault paths, folder title searches, or remote URLs
+- Add local vault paths, folder title searches, CollectionXiewer queries, or remote URLs
+- Set optional LIMIT and SORT
 - End a folder path with `/` for a recursive scan
 - Live block preview, copy, drag-reorder
 
@@ -221,6 +281,7 @@ All options are under **Settings → Community plugins → Oculus**.
 | Lightbox note images | Click wiki embeds and markdown images to open the Oculus lightbox |
 | Default view | Used when VIEW is omitted |
 | Default filter | Used when FILTER is omitted |
+| CollectionXiewer API URL | Base URL for `XIEWER:` (default `http://127.0.0.1:47821`) |
 
 Hosted platform URLs (YouTube, Vimeo, Bilibili, Coursera) always require Media Extended on desktop.
 

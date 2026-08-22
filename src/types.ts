@@ -22,6 +22,8 @@ export interface MediaGallerySettings {
 	useMediaExtendedPlayback: boolean;
 	/** Click markdown / wiki-embed images in notes to open the Oculus lightbox. */
 	lightboxMarkdownImages: boolean;
+	/** CollectionXiewer loopback API base URL (no trailing slash). */
+	collectionXiewerBaseUrl: string;
 }
 
 export const DEFAULT_SETTINGS: MediaGallerySettings = {
@@ -34,6 +36,7 @@ export const DEFAULT_SETTINGS: MediaGallerySettings = {
 	defaultFilter: "all",
 	useMediaExtendedPlayback: true,
 	lightboxMarkdownImages: true,
+	collectionXiewerBaseUrl: "http://127.0.0.1:47821",
 };
 
 export const IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
@@ -77,11 +80,29 @@ export interface SearchMediaEntry {
 	line: number;
 }
 
-export type MediaEntry = LocalMediaEntry | SearchMediaEntry | UrlMediaEntry;
+export interface XiewerMediaEntry {
+	kind: "xiewer";
+	/** Opaque CollectionXiewer search query. */
+	query: string;
+	line: number;
+}
+
+export type MediaEntry = LocalMediaEntry | SearchMediaEntry | UrlMediaEntry | XiewerMediaEntry;
+
+export type GallerySortMode =
+	| "name-asc"
+	| "name-dsc"
+	| "date-asc"
+	| "date-dsc"
+	| "random";
 
 export interface ParsedGalleryBlock {
 	view: GalleryViewType;
 	filter: MediaFilter;
+	/** Cap results per SEARCH and XIEWER source; null = unlimited. */
+	limit: number | null;
+	/** Global sort after merge; null = preserve source order. */
+	sort: GallerySortMode | null;
 	/** Grid column template; only used when view is `grid`. Values: `auto`, a number, or raw CSS. */
 	gridColumns: string;
 	/** Thumbnail column template; only used when view is `thumbnails`. Values: `auto`, a number, or raw CSS. */
@@ -103,7 +124,7 @@ export type UrlVariant = "direct" | "hosted";
 export interface GalleryItem {
 	id: string;
 	mediaKind: MediaKind;
-	source: "local" | "url";
+	source: "local" | "url" | "xiewer";
 	path?: string;
 	url?: string;
 	/** Distinguishes direct file URLs from hosted platform links (YouTube, etc.). */
@@ -111,6 +132,8 @@ export interface GalleryItem {
 	caption?: string;
 	src: string;
 	name: string;
+	/** Filesystem mtime (ms) when known; used for SORT date. */
+	mtime?: number;
 }
 
 export interface ResolveWarning {

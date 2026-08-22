@@ -67,7 +67,7 @@ export async function tryOpenVideoInMediaExtended(
 	if (!isMediaExtendedAvailable(app)) return false;
 	if (item.mediaKind !== "video") return false;
 
-	if (item.source === "url" && item.url) {
+	if ((item.source === "url" || item.source === "xiewer") && item.url) {
 		return invokeMxOpenHandler(app, item.url);
 	}
 

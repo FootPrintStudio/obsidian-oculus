@@ -1,4 +1,5 @@
 import { App, Platform, TFile, TFolder } from "obsidian";
+import { applyGallerySort } from "./gallerySort";
 import { isMediaExtendedAvailable } from "./mediaExtended";
 import { mediaTitleMatchesQueries } from "./searchQuery";
 import type {
@@ -21,6 +22,12 @@ import {
 	probeUrlContentType,
 	urlDisplayName,
 } from "./urlMedia";
+import {
+	fetchXiewerSearch,
+	xiewerFileUrl,
+	xiewerKindAllows,
+	xiewerMediaKind,
+} from "./xiewerClient";
 
 function extensionKind(ext: string): MediaKind | null {
 	const lower = ext.toLowerCase();
@@ -44,6 +51,7 @@ function fileToItem(app: App, file: TFile, caption?: string): GalleryItem {
 		caption,
 		src: app.vault.getResourcePath(file),
 		name: file.name,
+		mtime: file.stat.mtime,
 	};
 }
 
@@ -200,6 +208,42 @@ export async function resolveGalleryItems(
 			continue;
 		}
 
+		if (entry.kind === "xiewer") {
+			const result = await fetchXiewerSearch(
+				settings.collectionXiewerBaseUrl,
+				entry.query,
+				block.limit,
+				settings.remoteLoadTimeoutMs,
+			);
+			if (result.error) {
+				warnings.push({ line: entry.line, message: result.error });
+				continue;
+			}
+			let matched = 0;
+			for (const hit of result.items) {
+				if (!xiewerKindAllows(hit.kind, block.filter)) continue;
+				matched += 1;
+				addItem({
+					id: `xiewer:${hit.id}`,
+					mediaKind: xiewerMediaKind(hit.kind),
+					source: "xiewer",
+					path: hit.path,
+					url: xiewerFileUrl(settings.collectionXiewerBaseUrl, hit.id),
+					urlVariant: "direct",
+					src: xiewerFileUrl(settings.collectionXiewerBaseUrl, hit.id),
+					name: hit.name,
+					mtime: hit.mtime,
+				});
+			}
+			if (matched === 0) {
+				warnings.push({
+					line: entry.line,
+					message: `No matching CollectionXiewer media for query: ${entry.query}`,
+				});
+			}
+			continue;
+		}
+
 		if (entry.kind === "search") {
 			const folder = app.vault.getAbstractFileByPath(entry.path);
 			if (!folder) {
@@ -217,7 +261,8 @@ export async function resolveGalleryItems(
 				continue;
 			}
 
-			const files = scanFolder(app, folder.path, entry.recursive, block.filter, entry.queries);
+			let files = scanFolder(app, folder.path, entry.recursive, block.filter, entry.queries);
+			if (block.limit != null) files = files.slice(0, block.limit);
 			if (files.length === 0) {
 				warnings.push({
 					line: entry.line,
@@ -268,5 +313,6 @@ export async function resolveGalleryItems(
 		warnings.push({ line: entry.line, message: `Path not found: ${entry.path}` });
 	}
 
+	applyGallerySort(items, block.sort);
 	return { items, warnings };
 }

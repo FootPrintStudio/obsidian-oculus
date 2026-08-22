@@ -237,3 +237,54 @@ test("requires every parsed query to match the title", () => {
 	assert.equal(mediaTitleMatchesQueries("Renaissance Painting", queries), false);
 	assert.equal(parseMediaTitleQueries("Renaissance, "), null);
 });
+
+test("parses LIMIT, SORT, and XIEWER", () => {
+	const parsed = parseMediaGalleryBlock(`
+VIEW: grid
+FILTER: images
+LIMIT: 24
+SORT: date DSC
+XIEWER: tag:hero kind:image
+SEARCH: Media/Art/ | Picasso
+`);
+	assert.deepEqual(parsed.errors, []);
+	assert.equal(parsed.limit, 24);
+	assert.equal(parsed.sort, "date-dsc");
+	assert.equal(parsed.entries[0]?.kind, "xiewer");
+	assert.equal(parsed.entries[0]?.query, "tag:hero kind:image");
+	assert.equal(parsed.entries[1]?.kind, "search");
+});
+
+test("accepts SORT DESC as DSC alias and random", () => {
+	const desc = parseMediaGalleryBlock("SORT: name DESC\nLOCAL: Photos/a.jpg");
+	const random = parseMediaGalleryBlock("SORT: random\nLOCAL: Photos/a.jpg");
+	assert.equal(desc.sort, "name-dsc");
+	assert.equal(random.sort, "random");
+});
+
+test("rejects invalid LIMIT and SORT", () => {
+	const badLimit = parseMediaGalleryBlock("LIMIT: zero\nLOCAL: Photos/a.jpg");
+	const badSort = parseMediaGalleryBlock("SORT: size ASC\nLOCAL: Photos/a.jpg");
+	assert.match(badLimit.errors[0]?.message ?? "", /positive integer/);
+	assert.match(badSort.errors[0]?.message ?? "", /Unknown SORT/);
+});
+
+test("rejects empty XIEWER and formats XIEWER with LIMIT/SORT", () => {
+	const empty = parseMediaGalleryBlock("XIEWER:");
+	assert.match(empty.errors[0]?.message ?? "", /requires a value or indented entries|CollectionXiewer search query/);
+
+	const block = formatMediaGalleryBlock({
+		view: "grid",
+		filter: "images",
+		limit: 12,
+		sort: "name-asc",
+		sources: [{ kind: "xiewer", query: "tag:hero" }],
+	});
+	assert.match(block, /^LIMIT: 12$/m);
+	assert.match(block, /^SORT: name ASC$/m);
+	assert.match(block, /^XIEWER: tag:hero$/m);
+	const reparsed = parseMediaGalleryBlock(block);
+	assert.deepEqual(reparsed.errors, []);
+	assert.equal(reparsed.limit, 12);
+	assert.equal(reparsed.sort, "name-asc");
+});
