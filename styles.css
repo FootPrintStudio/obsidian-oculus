@@ -36,12 +36,21 @@
 
 /* Tiles */
 .mg-tile {
-	cursor: pointer;
+	cursor: grab;
 	border-radius: 8px;
 	overflow: hidden;
 	background: var(--background-secondary);
 	border: 1px solid var(--background-modifier-border);
 	transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mg-tile:active,
+.mg-tile.is-dragging {
+	cursor: grabbing;
+}
+
+.mg-tile.is-dragging {
+	opacity: 0.72;
 }
 
 .mg-tile:hover {

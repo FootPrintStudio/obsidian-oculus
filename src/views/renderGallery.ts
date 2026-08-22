@@ -1,5 +1,6 @@
 import { App, Component, Notice } from "obsidian";
 import { isMediaExtendedAvailable, tryOpenVideoInMediaExtended } from "../mediaExtended";
+import { galleryItemName } from "../mediaName";
 import type { GalleryItem, MediaGallerySettings, ParsedGalleryBlock } from "../types";
 import { openLightbox } from "./lightbox";
 import { renderCarousel } from "./carouselView";
@@ -109,32 +110,59 @@ export function renderWarningPanel(container: HTMLElement, messages: string[]): 
 
 const NATIVE_VIEWER_EVENTS = ["click", "mousedown", "dblclick", "pointerdown"] as const;
 
-/** Stop Obsidian's built-in image viewer from opening on gallery tiles. */
+/**
+ * Stop Obsidian's built-in image viewer from opening on gallery tiles.
+ * Allows HTML5 drag (no preventDefault on mousedown/pointerdown) so tiles can
+ * drag their filename into properties / editors.
+ */
 function suppressNativeImageViewer(tile: HTMLElement, onOpen: () => void): void {
 	tile.setAttr("role", "button");
 	tile.setAttr("tabindex", "0");
 
-	const stop = (event: Event): void => {
-		event.preventDefault();
+	let suppressClick = false;
+
+	const stopBubble = (event: Event): void => {
 		event.stopPropagation();
-		// Obsidian 1.12+ may register capture handlers on the workspace; block immediate propagation too.
 		event.stopImmediatePropagation();
+	};
+
+	const stopAll = (event: Event): void => {
+		event.preventDefault();
+		stopBubble(event);
 	};
 
 	for (const media of Array.from(tile.querySelectorAll("img, video"))) {
 		media.classList.add("mg-native-suppressed");
 		for (const type of NATIVE_VIEWER_EVENTS) {
-			media.addEventListener(type, stop, { capture: true });
+			// mousedown/pointerdown: do not preventDefault — that blocks HTML5 drag.
+			const handler = type === "mousedown" || type === "pointerdown" ? stopBubble : stopAll;
+			media.addEventListener(type, handler, { capture: true });
 		}
 	}
 
+	tile.addEventListener("dragstart", (event) => {
+		suppressClick = true;
+		const name = tile.dataset.mediaName ?? "";
+		event.dataTransfer?.setData("text/plain", name);
+		if (event.dataTransfer) event.dataTransfer.effectAllowed = "copy";
+		tile.addClass("is-dragging");
+	});
+	tile.addEventListener("dragend", () => {
+		tile.removeClass("is-dragging");
+		// Click often fires after a successful drop; ignore that one.
+		window.setTimeout(() => {
+			suppressClick = false;
+		}, 0);
+	});
+
 	tile.addEventListener("click", (event) => {
-		stop(event);
+		stopAll(event);
+		if (suppressClick) return;
 		onOpen();
 	});
 	tile.addEventListener("keydown", (event) => {
 		if (event.key !== "Enter" && event.key !== " ") return;
-		stop(event);
+		stopAll(event);
 		onOpen();
 	});
 }
@@ -232,6 +260,9 @@ export function createMediaTile(
 ): HTMLElement {
 	const tile = parent.createDiv({ cls: "mg-tile" });
 	tile.dataset.mediaKind = item.mediaKind;
+	tile.dataset.mediaName = galleryItemName(item);
+	tile.setAttr("draggable", "true");
+	tile.setAttr("title", `Drag to copy name: ${galleryItemName(item)}`);
 	if (item.urlVariant === "hosted") tile.addClass("mg-tile-hosted");
 
 	const mediaWrap = tile.createDiv({ cls: "mg-tile-media" });

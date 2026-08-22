@@ -25,6 +25,7 @@ A folder path ending in `/` is recursive. Without the slash, only that folder is
 - **Remote media** — images, direct video URLs, and hosted platforms (YouTube, Vimeo, …)
 - **Views** — `grid`, `thumbnails`, `carousel`, `masonry-h`, `masonry-v`
 - **Lightbox** — gallery tiles, plus wiki embeds and markdown images in notes
+- **Copy media name** — drag a gallery tile, or use **Copy name** in the lightbox, to paste a file name into properties (e.g. Bases covers)
 - **Media Extended** — desktop video / hosted URL playback when that plugin is installed
 - **Authoring** — install **Augur** for the gallery builder, vault path picker, and syntax suggestions
 

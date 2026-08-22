@@ -238,7 +238,9 @@ FILTER applies to LOCAL folder scans, SEARCH sources, URL entries, and XIEWER re
 
 ### Gallery tiles
 
-Click a tile to open the lightbox (prev/next, arrow keys, Escape, image zoom). Hosted videos always open in Media Extended when available. Local and direct URL videos follow **Use Media Extended for videos**.
+Click a tile to open the lightbox (prev/next, arrow keys, Escape, image zoom). Use **Copy name** in the toolbar to put the media file name on the clipboard (handy for Bases cover properties). Hosted videos always open in Media Extended when available. Local and direct URL videos follow **Use Media Extended for videos**.
+
+Drag any gallery tile onto a property field or editor to paste the media item's name (including extension when present). Click still opens the lightbox; a drag does not.
 
 ### Note images
 

@@ -1,5 +1,6 @@
-import { App, Modal } from "obsidian";
+import { App, Modal, Notice } from "obsidian";
 import { tryOpenVideoInMediaExtended } from "../mediaExtended";
+import { copyGalleryItemName, galleryItemName } from "../mediaName";
 import type { GalleryItem, MediaGallerySettings } from "../types";
 import { resolveXiewerObjectUrl } from "../xiewerClient";
 
@@ -54,6 +55,20 @@ export class LightboxModal extends Modal {
 		toolbar
 			.createEl("button", { text: "Reset", cls: "mg-lightbox-btn", attr: { title: "Reset zoom and pan" } })
 			.addEventListener("click", () => this.resetTransform());
+		toolbar
+			.createEl("button", {
+				text: "Copy name",
+				cls: "mg-lightbox-btn",
+				attr: { title: "Copy the media file name" },
+			})
+			.addEventListener("click", () => {
+				const item = this.items[this.index];
+				if (!item) {
+					new Notice("No media selected.");
+					return;
+				}
+				void copyGalleryItemName(item);
+			});
 		toolbar.createEl("button", { text: "Close", cls: "mg-lightbox-btn" }).addEventListener("click", () =>
 			this.close(),
 		);
@@ -204,7 +219,7 @@ export class LightboxModal extends Modal {
 		}
 		info.createDiv({
 			cls: "mg-lightbox-meta",
-			text: `${this.index + 1} / ${this.items.length} — ${item.name}`,
+			text: `${this.index + 1} / ${this.items.length} — ${galleryItemName(item)}`,
 		});
 	}
 
