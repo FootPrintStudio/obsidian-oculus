@@ -46,7 +46,7 @@ export class GalleryBlock extends MarkdownRenderChild {
 		renderWarningPanel(el, warningMessages);
 
 		if (items.length === 0) {
-			renderErrorPanel(el, ["No media items resolved for this gallery."]);
+			renderErrorPanel(el, ["No media items resolved for this gallery."], { append: true });
 			return;
 		}
 

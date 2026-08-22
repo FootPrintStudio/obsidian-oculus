@@ -92,11 +92,16 @@ export function renderGalleryView(
 	}
 }
 
-export function renderErrorPanel(container: HTMLElement, messages: string[]): void {
-	container.empty();
-	container.addClass("mg-gallery-error");
+export function renderErrorPanel(
+	container: HTMLElement,
+	messages: string[],
+	options?: { append?: boolean },
+): void {
+	const target = options?.append
+		? container.createDiv({ cls: "mg-gallery-error" })
+		: (container.empty(), container.addClass("mg-gallery-error"), container);
 	for (const message of messages) {
-		container.createDiv({ cls: "mg-gallery-error-line", text: message });
+		target.createDiv({ cls: "mg-gallery-error-line", text: message });
 	}
 }
 
