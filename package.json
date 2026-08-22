@@ -1,7 +1,7 @@
 {
 	"name": "obsidian-oculus",
-	"version": "2.1.0",
-	"description": "Oculus — local, searched, and remote media galleries with a note-image lightbox.",
+	"version": "2.1.1",
+	"description": "Oculus — local, searched, CollectionXiewer, and remote media galleries with a note-image lightbox.",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {

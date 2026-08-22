@@ -175,6 +175,12 @@ export function appendGalleryTileMedia(
 	item: GalleryItem,
 	component: Component,
 ): void {
+	const authAttrs: Record<string, string> = {};
+	if (item.authToken) {
+		authAttrs["data-auth-token"] = item.authToken;
+		if (item.authHeader) authAttrs["data-auth-header"] = item.authHeader;
+	}
+
 	let media: HTMLImageElement | HTMLVideoElement;
 	if (item.urlVariant === "hosted") {
 		media = mediaWrap.createEl("img", {
@@ -185,6 +191,7 @@ export function appendGalleryTileMedia(
 				decoding: "async",
 				fetchpriority: "low",
 				draggable: "false",
+				...authAttrs,
 			},
 		});
 		mediaWrap.createDiv({ cls: "mg-tile-play-badge", attr: { "aria-hidden": "true" } });
@@ -195,6 +202,7 @@ export function appendGalleryTileMedia(
 				preload: "none",
 				muted: "",
 				playsinline: "",
+				...authAttrs,
 			},
 		});
 	} else {
@@ -206,6 +214,7 @@ export function appendGalleryTileMedia(
 				decoding: "async",
 				fetchpriority: "low",
 				draggable: "false",
+				...authAttrs,
 			},
 		});
 	}

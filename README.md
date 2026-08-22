@@ -20,7 +20,7 @@ A folder path ending in `/` is recursive. Without the slash, only that folder is
 
 - **Local media** — files, one-level folders, or recursive scans (`LOCAL: Photos/`)
 - **Title search** — folder media whose filenames contain every comma-separated query
-- **CollectionXiewer** — `XIEWER:` queries via the loopback API (app must be running)
+- **CollectionXiewer** — `XIEWER:` queries via authenticated loopback API (app must be running; token from `local-api.json`)
 - **LIMIT / SORT** — cap SEARCH/XIEWER results; reorder the merged gallery
 - **Remote media** — images, direct video URLs, and hosted platforms (YouTube, Vimeo, …)
 - **Views** — `grid`, `thumbnails`, `carousel`, `masonry-h`, `masonry-v`

@@ -1,4 +1,5 @@
 import type { Component } from "obsidian";
+import { resolveXiewerObjectUrl } from "../xiewerClient";
 
 const DEFERRED_MEDIA_ROOT_MARGIN = "600px";
 
@@ -19,11 +20,7 @@ function isMediaElement(
 	return tagName === "IMG" || tagName === "VIDEO";
 }
 
-function activateDeferredMedia(media: HTMLImageElement | HTMLVideoElement): void {
-	const src = media.dataset.src;
-	if (!src) return;
-	delete media.dataset.src;
-
+function applySrc(media: HTMLImageElement | HTMLVideoElement, src: string): void {
 	const markLoaded = (): void => media.classList.add("mg-lazy-loaded");
 	if (isImageElement(media)) {
 		media.addEventListener("load", markLoaded, { once: true });
@@ -36,6 +33,25 @@ function activateDeferredMedia(media: HTMLImageElement | HTMLVideoElement): void
 	media.src = src;
 	media.preload = "metadata";
 	media.load();
+}
+
+function activateDeferredMedia(media: HTMLImageElement | HTMLVideoElement): void {
+	const src = media.dataset.src;
+	if (!src) return;
+	delete media.dataset.src;
+
+	const token = media.dataset.authToken;
+	const header = media.dataset.authHeader;
+	if (!token) {
+		applySrc(media, src);
+		return;
+	}
+
+	void resolveXiewerObjectUrl(src, token, header)
+		.then((objectUrl) => applySrc(media, objectUrl))
+		.catch(() => {
+			media.dispatchEvent(new Event("error"));
+		});
 }
 
 export function resetDeferredMediaLoader(component: Component): void {

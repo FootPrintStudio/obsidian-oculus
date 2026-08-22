@@ -108,7 +108,8 @@ XIEWER:
 
 - Syntax is CollectionXiewer’s search language (tags, collections, `kind:`, booleans, …).
 - Oculus does not reinterpret the query.
-- Results load through the API file proxy (`/file/:id`).
+- Auth: Oculus reads the session token from `~/.config/CollectionXiewer/local-api.json` and sends `X-CollectionXiewer-Token` on `/search` and `/file` requests. Tiles load via authenticated blob URLs (browsers cannot attach headers to `<img src>`).
+- Search results use loopback `url` values (`/file/:id`); absolute filesystem paths are not used.
 - FILTER applies by media kind (`motion` counts as image).
 - LIMIT caps each XIEWER source’s results.
 - Override the API base URL in **Settings → CollectionXiewer API URL**.

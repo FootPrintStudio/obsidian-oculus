@@ -24,7 +24,6 @@ import {
 } from "./urlMedia";
 import {
 	fetchXiewerSearch,
-	xiewerFileUrl,
 	xiewerKindAllows,
 	xiewerMediaKind,
 } from "./xiewerClient";
@@ -219,20 +218,23 @@ export async function resolveGalleryItems(
 				warnings.push({ line: entry.line, message: result.error });
 				continue;
 			}
+			const session = result.session;
 			let matched = 0;
 			for (const hit of result.items) {
 				if (!xiewerKindAllows(hit.kind, block.filter)) continue;
+				if (!hit.url) continue;
 				matched += 1;
 				addItem({
 					id: `xiewer:${hit.id}`,
 					mediaKind: xiewerMediaKind(hit.kind),
 					source: "xiewer",
-					path: hit.path,
-					url: xiewerFileUrl(settings.collectionXiewerBaseUrl, hit.id),
+					url: hit.url,
 					urlVariant: "direct",
-					src: xiewerFileUrl(settings.collectionXiewerBaseUrl, hit.id),
+					src: hit.url,
 					name: hit.name,
 					mtime: hit.mtime,
+					authToken: session?.token,
+					authHeader: session?.tokenHeader,
 				});
 			}
 			if (matched === 0) {

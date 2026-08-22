@@ -134,6 +134,10 @@ export interface GalleryItem {
 	name: string;
 	/** Filesystem mtime (ms) when known; used for SORT date. */
 	mtime?: number;
+	/** CollectionXiewer session token for authenticated /file fetches. */
+	authToken?: string;
+	/** Header name for authToken (default X-CollectionXiewer-Token). */
+	authHeader?: string;
 }
 
 export interface ResolveWarning {

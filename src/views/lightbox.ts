@@ -1,6 +1,7 @@
 import { App, Modal } from "obsidian";
 import { tryOpenVideoInMediaExtended } from "../mediaExtended";
 import type { GalleryItem, MediaGallerySettings } from "../types";
+import { resolveXiewerObjectUrl } from "../xiewerClient";
 
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 5;
@@ -25,6 +26,7 @@ export class LightboxModal extends Modal {
 	private transformEl: HTMLElement | null = null;
 	private infoEl: HTMLElement | null = null;
 	private disposers: Array<() => void> = [];
+	private renderGeneration = 0;
 
 	constructor(app: App, items: GalleryItem[], index: number, settings: MediaGallerySettings) {
 		super(app);
@@ -132,9 +134,15 @@ export class LightboxModal extends Modal {
 	}
 
 	private renderItem(): void {
+		void this.renderItemAsync();
+	}
+
+	private async renderItemAsync(): Promise<void> {
 		const transform = this.transformEl;
 		const info = this.infoEl;
 		if (!transform || !info) return;
+
+		const renderGeneration = ++this.renderGeneration;
 
 		transform.empty();
 		info.empty();
@@ -143,20 +151,34 @@ export class LightboxModal extends Modal {
 		const item = this.items[this.index];
 		if (!item) return;
 
+		let src = item.src;
+		if (item.authToken) {
+			try {
+				src = await resolveXiewerObjectUrl(item.src, item.authToken, item.authHeader);
+			} catch {
+				info.createDiv({
+					cls: "mg-lightbox-caption",
+					text: "Failed to load CollectionXiewer media (auth or network).",
+				});
+				return;
+			}
+		}
+		if (renderGeneration !== this.renderGeneration) return;
+
 		if (item.urlVariant === "hosted") {
 			this.panZoomEnabled = false;
 			this.mediaEl = transform.createEl("img", {
-				attr: { src: item.src, alt: item.name, draggable: "false" },
+				attr: { src, alt: item.name, draggable: "false" },
 			});
 		} else if (item.mediaKind === "video") {
 			this.panZoomEnabled = false;
 			this.mediaEl = transform.createEl("video", {
-				attr: { src: item.src, controls: "", autoplay: "", playsinline: "" },
+				attr: { src, controls: "", autoplay: "", playsinline: "" },
 			});
 		} else {
 			this.panZoomEnabled = true;
 			this.mediaEl = transform.createEl("img", {
-				attr: { src: item.src, alt: item.name, draggable: "false" },
+				attr: { src, alt: item.name, draggable: "false" },
 			});
 			this.mediaEl.addEventListener("click", (event) => {
 				event.stopPropagation();
