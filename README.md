@@ -20,7 +20,7 @@ A folder path ending in `/` is recursive. Without the slash, only that folder is
 
 - **Local media** — files, one-level folders, or recursive scans (`LOCAL: Photos/`)
 - **Title search** — folder media whose filenames contain every comma-separated query
-- **CollectionXiewer** — `XIEWER:` queries via authenticated loopback API (app must be running; token from `local-api.json`)
+- **CollectionXiewer** — `XIEWER:` queries via authenticated loopback API (app must be running; token from `local-api.json`; auto re-read + retry on 401 after Xiewer restart)
 - **LIMIT / SORT** — cap SEARCH/XIEWER results; reorder the merged gallery
 - **Remote media** — images, direct video URLs, and hosted platforms (YouTube, Vimeo, …)
 - **Views** — `grid`, `thumbnails`, `carousel`, `masonry-h`, `masonry-v`
@@ -84,7 +84,7 @@ Open **Settings → Community plugins → Oculus** (Settings | README | Guide).
 | Lightbox note images | Wiki embeds and markdown images open the Oculus lightbox |
 | Default view | Used when VIEW is omitted |
 | Default filter | Used when FILTER is omitted (`all` by default) |
-| CollectionXiewer API URL | Base URL for `XIEWER:` (default `http://127.0.0.1:47821`) |
+| CollectionXiewer API URL | Base URL for `XIEWER:` (default `http://127.0.0.1:47821`; override wins over token-file host/port; changing it clears cached Xiewer blob URLs) |
 
 ## Develop / rebuild
 
