@@ -108,11 +108,14 @@ XIEWER:
 
 - Syntax is CollectionXiewer’s search language (tags, collections, `kind:`, booleans, …).
 - Oculus does not reinterpret the query.
-- Auth: Oculus reads the session token from `~/.config/CollectionXiewer/local-api.json` and sends `X-CollectionXiewer-Token` on `/search` and `/file` requests. Tiles load via authenticated blob URLs (browsers cannot attach headers to `<img src>`).
+- Auth: Oculus reads the session token from `~/.config/CollectionXiewer/local-api.json` and sends `X-CollectionXiewer-Token` (and `Authorization: Bearer`) on `/search` and `/file` requests. Tiles load via authenticated blob URLs (browsers cannot attach headers to `<img src>`).
+- **Token lifecycle:** CollectionXiewer rewrites `local-api.json` with a new session token on every start. Oculus re-reads that file on each search and, on HTTP 401, re-reads once and retries automatically (search and file fetches). You usually do not need to manually reload the note after restarting Xiewer; if retry still fails, ensure the app is running and reopen/refresh the note.
+- **Blob cache:** Object URLs are cached by `token + header + file URL`. Stale blobs are revoked when the session token changes, when you change **CollectionXiewer API URL**, and when the plugin unloads. Closing a note / gallery leaf does **not** revoke the shared cache (other open notes may still need those URLs).
+- **One Xiewer process:** The token file is global (`~/.config/CollectionXiewer/local-api.json`). Multiple Obsidian vaults may share one running CollectionXiewer. A second Xiewer instance / alternate bind is unsupported unless you point **CollectionXiewer API URL** at that bind and that process owns the matching token file.
 - Search results use loopback `url` values (`/file/:id`); absolute filesystem paths are not used.
 - FILTER applies by media kind (`motion` counts as image).
 - LIMIT caps each XIEWER source’s results.
-- Override the API base URL in **Settings → CollectionXiewer API URL**.
+- Override the API base URL in **Settings → CollectionXiewer API URL** (settings override wins over `host`/`port` in the token file).
 
 ---
 

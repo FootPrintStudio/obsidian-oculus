@@ -3,6 +3,7 @@ import { createGalleryBlock, GalleryBlock } from "./galleryBlock";
 import { registerMarkdownImageLightbox } from "./noteLightbox";
 import { MediaGallerySettingTab } from "./settings";
 import { DEFAULT_SETTINGS, IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, type MediaGallerySettings } from "./types";
+import { clearXiewerSessionMemory, revokeXiewerObjectUrls } from "./xiewerClient";
 
 const MEDIA_EXTENSIONS = new Set([...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS]);
 
@@ -58,6 +59,9 @@ export default class OculusPlugin extends Plugin {
 			window.clearTimeout(this.refreshTimer);
 			this.refreshTimer = null;
 		}
+		// Shared blob cache is plugin-scoped — revoke on unload, not on individual leaf/block teardown.
+		revokeXiewerObjectUrls();
+		clearXiewerSessionMemory();
 	}
 
 	registerGalleryBlock(block: GalleryBlock): void {

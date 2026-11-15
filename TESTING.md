@@ -47,6 +47,8 @@ Use fixtures in `Dev Pages/Media Gallery Test/` inside the Command Centre vault.
 - [ ] Duplicate VIEW or FILTER shows parse error panel
 - [ ] `OPTIONS:` / `MEDIA:` headers show parse errors
 - [ ] `XIEWER:` resolves when CollectionXiewer is running; warning when it is not
+- [ ] Restart CollectionXiewer while a `XIEWER:` note is open, then refresh/reopen — gallery recovers without a stuck 401 (auto token re-read)
+- [ ] Disable Oculus — no leaked CollectionXiewer blob URLs (plugin unload revokes cache)
 - [ ] `LIMIT:` caps SEARCH and XIEWER results only
 - [ ] `SORT: date DSC` / `name ASC` / `random` reorder the merged gallery
 - [ ] Empty block with no LOCAL/SEARCH/URL/XIEWER shows error

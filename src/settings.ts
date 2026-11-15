@@ -8,6 +8,7 @@ import {
 	type PluginSettingsTabId,
 } from "./readmeTab";
 import { DEFAULT_SETTINGS, VIEW_TYPES } from "./types";
+import { revokeXiewerObjectUrls } from "./xiewerClient";
 
 export class MediaGallerySettingTab extends PluginSettingTab {
 	plugin: OculusPlugin;
@@ -182,8 +183,10 @@ export class MediaGallerySettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.collectionXiewerBaseUrl)
 					.onChange(async (value) => {
 						const trimmed = value.trim().replace(/\/+$/, "");
-						this.plugin.settings.collectionXiewerBaseUrl =
-							trimmed || DEFAULT_SETTINGS.collectionXiewerBaseUrl;
+						const next = trimmed || DEFAULT_SETTINGS.collectionXiewerBaseUrl;
+						const prev = this.plugin.settings.collectionXiewerBaseUrl;
+						this.plugin.settings.collectionXiewerBaseUrl = next;
+						if (prev !== next) revokeXiewerObjectUrls();
 						await this.plugin.saveSettings();
 					}),
 			);
